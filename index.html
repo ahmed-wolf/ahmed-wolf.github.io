@@ -14,6 +14,21 @@
     <title>منيو فاملي بيكري | Family Bakery System</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#d84315">
+
+    <!-- ---------------- SEO & مشاركة اللينك (Open Graph / Twitter Card) ---------------- -->
+    <meta name="description" content="فاملي بيكري - اطلب أونلاين من قائمة الخبز والمخبوزات الطازة يومياً، واختار الدفع كاش أو أونلاين، وتابع أوردراتك بسهولة.">
+    <meta name="keywords" content="فاملي بيكري, مخبوزات, خبز طازة, توصيل مخبوزات, بيكري, اوردر اونلاين">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ar_EG">
+    <meta property="og:title" content="فاملي بيكري | منيو وأوردر أونلاين">
+    <meta property="og:description" content="اطلب مخبوزاتك الطازة أونلاين من فاملي بيكري بضغطة واحدة، وتابع أوردراتك بسهولة.">
+    <meta property="og:image" content="logo.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="فاملي بيكري | منيو وأوردر أونلاين">
+    <meta name="twitter:description" content="اطلب مخبوزاتك الطازة أونلاين من فاملي بيكري بضغطة واحدة.">
+    <meta name="twitter:image" content="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -26,7 +41,9 @@
         
         /* Header */
         .top-header { height: 60px; background: linear-gradient(135deg, var(--dark-bg), #5d4037); color: white; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
-        .brand h1 { margin: 0; font-size: 1.2em; font-weight: 900; }
+        .brand { display: flex; align-items: center; height: 100%; }
+        /* Logo image: responsive, capped height so it always fits neatly in the fixed header */
+        .logo-img { max-height: 45px; max-width: 160px; width: auto; height: auto; object-fit: contain; display: block; }
         .header-actions { display: flex; gap: 8px; }
         .icon-btn { background-color: white; color: var(--dark-bg); padding: 5px 12px; border-radius: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 0.85em; border:none; font-family: 'Cairo';}
         .cart-badge { background-color: var(--primary-color); color: white; padding: 2px 8px; border-radius: 50%; font-weight: 900; font-size: 0.9em; }
@@ -81,7 +98,10 @@
         .payment-options { display: flex; gap: 10px; margin-top: 15px; }
         .pay-btn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid #ffe0b2; background: #fff; font-family: 'Cairo'; font-weight: bold; cursor: pointer; transition: 0.3s; color: var(--dark-bg); }
         .pay-btn.active { border-color: var(--primary-color); background: #fff3e0; color: var(--primary-color); }
+        /* Level 2 (online sub-options) is hidden by default and revealed via JS */
+        .payment-sub-options { display: none; }
         .instapay-details { display: none; background: #f3e5f5; padding: 15px; border-radius: 10px; border: 1px dashed #ab47bc; margin-top: 10px; text-align: center; }
+        .wallet-details { display: none; background: #e3f2fd; padding: 15px; border-radius: 10px; border: 1px dashed #42a5f5; margin-top: 10px; text-align: center; }
 
         /* Tracking History */
         .track-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -103,12 +123,33 @@
         #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.7s; }
         @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        /* ---------------- Footer ---------------- */
+        .site-footer { background: linear-gradient(135deg, var(--dark-bg), #5d4037); color: #fffaf5; margin-top: 40px; padding: 30px 20px; border-top-left-radius: 24px; border-top-right-radius: 24px; }
+        .footer-inner { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+        /* The single logo + "لينكاتنا" pill that opens the links dropdown */
+        .footer-brand-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 30px; padding: 8px 18px; margin-bottom: 14px; transition: 0.3s; user-select: none; }
+        .footer-brand-toggle:hover { background: rgba(255,255,255,0.16); }
+        .footer-brand-toggle img { max-height: 32px; width: auto; border-radius: 50%; object-fit: cover; background: #fff; }
+        .footer-brand-toggle span.label { font-weight: 700; color: #ffe0b2; }
+        .footer-brand-toggle .chevron { font-size: 0.8em; color: #ffe0b2; transition: transform 0.3s; }
+        .footer-brand-toggle.open .chevron { transform: rotate(180deg); }
+        /* Dropdown menu revealed on click: social links + location */
+        .footer-links-menu { display: none; flex-direction: column; gap: 6px; background: #fffaf5; border-radius: 14px; padding: 10px; margin-bottom: 18px; width: 100%; max-width: 260px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .footer-links-menu a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--dark-bg); font-weight: 700; padding: 9px 10px; border-radius: 8px; transition: 0.2s; font-size: 0.95em; }
+        .footer-links-menu a:hover { background: #fff3e0; color: var(--primary-color); }
+        .footer-links-menu .link-icon { width: 22px; text-align: center; font-size: 1.1em; }
+        .footer-landline { text-align: center; margin-bottom: 18px; font-size: 0.95em; color: #ffe0b2; }
+        .footer-landline a { color: #ffcc80; text-decoration: none; font-weight: 700; }
+        .footer-landline a:hover { text-decoration: underline; }
+        .footer-credit { text-align: center; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.85em; color: #ffe0b2; font-weight: 700; letter-spacing: 0.5px; width: 100%; }
     </style>
 </head>
 <body>
 
 <header class="top-header">
-    <div class="brand"><h1>🍞 فاملي بيكري</h1></div>
+    <!-- Logo: replace logo.png with the real bakery logo file. Kept responsive via .logo-img (max-height: 45px) -->
+    <div class="brand"><img src="logo.png" alt="فاملي بيكري" class="logo-img"></div>
     <div class="header-actions">
         <button class="icon-btn" onclick="openTrackingModal()">📜 تتبع أوردرك</button>
         <button class="icon-btn" onclick="openCartModal()">
@@ -119,7 +160,7 @@
 </header>
 
 <div class="search-container">
-    <input type="text" id="search-bar" placeholder="🔍 بتبحث عن إيه؟..." onkeyup="filterMenu()">
+    <input type="text" id="search-bar" placeholder="🔍 بتبحث عن إيه؟..." aria-label="بحث في المنيو" oninput="debouncedFilterMenu()">
 </div>
 
 <div class="filters-container">
@@ -130,6 +171,34 @@
 
 <nav class="category-nav" id="nav-bar"></nav>
 <div class="container"><div id="dynamic-menu"></div></div>
+
+<!-- ---------------- Footer ---------------- -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <!-- Logo + "لينكاتنا" pill: click toggles the links dropdown below -->
+        <div class="footer-brand-toggle" id="footer-toggle" onclick="toggleFooterMenu()">
+            <img src="logo.png" alt="فاملي بيكري">
+            <span class="label">لينكاتنا</span>
+            <span class="chevron">▾</span>
+        </div>
+
+        <!-- Dropdown: social links + location, hidden until the pill above is clicked -->
+        <div class="footer-links-menu" id="footer-links-menu">
+            <a href="https://wa.me/201030981097" target="_blank" rel="noopener"><span class="link-icon">📱</span> واتساب</a>
+            <a href="https://facebook.com/familybakery" target="_blank" rel="noopener"><span class="link-icon">📘</span> فيسبوك</a>
+            <a href="https://instagram.com/familybakery" target="_blank" rel="noopener"><span class="link-icon">📷</span> إنستجرام</a>
+            <a href="https://tiktok.com/@familybakery" target="_blank" rel="noopener"><span class="link-icon">🎵</span> تيك توك</a>
+            <a href="https://maps.google.com/?q=Family+Bakery" target="_blank" rel="noopener"><span class="link-icon">📍</span> لوكيشن المحل</a>
+        </div>
+
+        <!-- Landline number, shown right under the logo -->
+        <div class="footer-landline">
+            ☎️ رقم أرضي: <a href="tel:0223456789">02-23456789</a>
+        </div>
+
+        <div class="footer-credit">Powered by Ahmed Wolf 🐺</div>
+    </div>
+</footer>
 
 <div class="chat-widget-btn" onclick="toggleChat()">💬</div>
 <div class="chat-window" id="chat-window">
@@ -152,7 +221,7 @@
 <div id="toast">✅ تم!</div>
 
 <div class="modal-overlay" id="info-modal">
-    <div class="modal-content" style="max-width: 350px; text-align:center; padding:20px;">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="info-title" style="max-width: 350px; text-align:center; padding:20px;">
         <div style="font-size: 3em; margin-bottom: 10px;">🍞</div>
         <h3 id="info-title" style="color: var(--dark-bg); margin-top: 0; font-weight: 900;"></h3>
         <p id="info-desc" style="color: #555; line-height: 1.6; font-size: 1.05em; font-weight: 600;"></p>
@@ -164,10 +233,10 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 style="margin:0; font-weight:900; color: var(--dark-bg);">📜 تتبع طلباتك</h3>
-            <button style="background:#ffebeb; color:#d32f2f; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;" onclick="closeTrackingModal()">✖</button>
+            <button aria-label="إغلاق" style="background:#ffebeb; color:#d32f2f; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;" onclick="closeTrackingModal()">✖</button>
         </div>
         <div class="modal-body">
-            <p style="color:#666; font-size:0.9em; margin-top:0;">أدخل رقم الواتساب اللي طلبت بيه عشان نجيبلك سجل طلباتك من السيستم:</p>
+            <p style="color:#666; font-size:0.9em; margin-top:0;">طلباتك المحفوظة على الجهاز ده ظاهرة تلقائي تحت. لو طلبت من جهاز تاني، دور برقم التليفون:</p>
             <div class="track-input-group">
                 <input type="tel" id="track-phone-input" class="track-input" placeholder="مثال: 01012345678">
                 <button class="track-btn" onclick="fetchOrderHistory()">بحث 🔍</button>
@@ -181,7 +250,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 style="margin:0; font-weight:900; color: var(--dark-bg);">🛒 مراجعة الطلب</h3>
-            <button style="background:#ffebeb; color:#d32f2f; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;" onclick="closeCartModal()">✖</button>
+            <button aria-label="إغلاق" style="background:#ffebeb; color:#d32f2f; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;" onclick="closeCartModal()">✖</button>
         </div>
         <div class="modal-body">
             <div id="modal-cart-items"></div>
@@ -197,17 +266,37 @@
                 <input type="tel" id="user-backup-phone" placeholder="📞 رقم التليفون *" oninput="saveUserData()" style="width:100%; padding:14px; border-radius:12px; border:1.5px solid #ffe0b2; font-family:'Cairo'; outline:none;">
             </div>
 
+            <!-- ---------------- Progressive Disclosure Payment UI ---------------- -->
             <h4 style="margin-bottom: 5px; color: var(--dark-bg);">طريقة الدفع:</h4>
+
+            <!-- Level 1: Cash vs Online -->
             <div class="payment-options">
-                <button class="pay-btn active" id="btn-cash" onclick="setPayment('cash')">💵 كاش عند الاستلام</button>
-                <button class="pay-btn" id="btn-instapay" onclick="setPayment('instapay')">📱 إنستا باي</button>
+                <button class="pay-btn active" id="btn-cash" onclick="setPaymentMain('cash')">💵 كاش عند الاستلام</button>
+                <button class="pay-btn" id="btn-online" onclick="setPaymentMain('online')">💳 دفع أونلاين</button>
             </div>
-            
+
+            <!-- Level 2: revealed only when "Online" is chosen -->
+            <div class="payment-options payment-sub-options" id="online-sub-options">
+                <button class="pay-btn" id="btn-instapay" onclick="setPaymentSub('instapay')">📱 إنستا باي</button>
+                <button class="pay-btn" id="btn-wallet" onclick="setPaymentSub('wallet')">👛 محفظة إلكترونية</button>
+            </div>
+
+            <!-- Level 3a: InstaPay details -->
             <div id="instapay-info" class="instapay-details">
                 <p style="margin:0 0 10px 0; font-weight:bold; color:#4a148c;">حول المبلغ على الرقم ده:</p>
                 <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
                     <span id="insta-number" style="font-size:1.4em; font-weight:900; letter-spacing:2px; color:#ab47bc;">01030981097</span>
                     <button onclick="copyInsta()" style="background:#ab47bc; color:white; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; font-family:'Cairo';">نسخ 📋</button>
+                </div>
+                <p style="font-size:0.85em; color:#666; margin-top:10px;">(برجاء إرسال سكرين شوت التحويل مع رسالة الواتساب لتأكيد الطلب)</p>
+            </div>
+
+            <!-- Level 3b: E-Wallet details -->
+            <div id="wallet-info" class="wallet-details">
+                <p style="margin:0 0 10px 0; font-weight:bold; color:#0d47a1;">حول المبلغ على رقم المحفظة:</p>
+                <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
+                    <span id="wallet-number" style="font-size:1.4em; font-weight:900; letter-spacing:2px; color:#1976d2;">010XXXXXXX</span>
+                    <button onclick="copyWallet()" style="background:#1976d2; color:white; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; font-family:'Cairo';">نسخ 📋</button>
                 </div>
                 <p style="font-size:0.85em; color:#666; margin-top:10px;">(برجاء إرسال سكرين شوت التحويل مع رسالة الواتساب لتأكيد الطلب)</p>
             </div>
@@ -217,7 +306,7 @@
                 الإجمالي: <span id="modal-total-value">0</span> ج.م
                 <span id="old-total" style="text-decoration: line-through; color: #999; font-size: 0.7em; display: none;"></span>
             </div>
-            <button onclick="sendOrder()" style="background:var(--whatsapp-color); color:white; border:none; width:100%; padding:16px; border-radius:14px; font-weight:900; font-size:1.2em; cursor:pointer; font-family:'Cairo'; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);">تأكيد وطلب عبر واتساب ✅</button>
+            <button id="confirm-order-btn" onclick="sendOrder()" style="background:var(--whatsapp-color); color:white; border:none; width:100%; padding:16px; border-radius:14px; font-weight:900; font-size:1.2em; cursor:pointer; font-family:'Cairo'; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3); transition: 0.2s;">تأكيد وطلب عبر واتساب ✅</button>
         </div>
     </div>
 </div>
@@ -228,15 +317,82 @@
     
     let bakeryMenu = []; 
     let promoData = {}; 
-    let cart = JSON.parse(localStorage.getItem('familyBakeryCart')) || [];
+    let cart = []; // بيتحمل فعلياً تحت بعد تعريف دوال الـ localStorage الآمنة
     let appliedDiscount = 0, appliedMaxCap = 0, appliedPromoCode = "";
     let shiftWhatsAppNumber = "201030981097";
-    let selectedPayment = "كاش";
+    let selectedPayment = "كاش 💵"; // default payment method, kept in sync by setPaymentMain/setPaymentSub
     let currentSortMode = 'default';
+    let isSendingOrder = false; // يمنع إرسال نفس الأوردر أكتر من مرة لو المستخدم دَس على الزرار بسرعة
+
+    // صورة بديلة بسيطة (SVG) بتظهر مكان أي صورة منتج اتكسر رابطها أو مش موجودة أصلاً
+    const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='100%25' height='100%25' fill='%23ffecb3'/%3E%3Ccircle cx='150' cy='95' r='38' fill='%23ffcc80'/%3E%3C/svg%3E";
+
+    // ---------------- Debounce ----------------
+    // بيمنع تشغيل فنكشن البحث مع كل حرف بيتكتب، وينتظر شوية بعد آخر حرف عشان الأداء يبقى أفضل
+    function debounce(fn, delay) {
+        let timer;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
 
     function escapeHTML(str) {
         if (!str) return "";
         return str.toString().replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    // ---------------- Local Storage آمن ----------------
+    // بيمنع الموقع من الوقوع لو localStorage مش متاح (وضع التصفح الخاص / الجهاز رافض تخزين)
+    function safeGetJSON(key, fallback) {
+        try {
+            let raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+            console.warn('تعذرت قراءة البيانات المحفوظة:', e);
+            return fallback;
+        }
+    }
+    function safeGetString(key, fallback) {
+        try {
+            let raw = localStorage.getItem(key);
+            return raw === null ? fallback : raw;
+        } catch (e) {
+            console.warn('تعذرت قراءة البيانات المحفوظة:', e);
+            return fallback;
+        }
+    }
+    function safeSet(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (e) {
+            console.warn('تعذر حفظ البيانات على الجهاز:', e);
+            return false;
+        }
+    }
+
+    // تحميل السلة فعلياً بعد ما اتعرفت الدوال الآمنة فوق
+    cart = safeGetJSON('familyBakeryCart', []);
+
+    // ---------------- التحقق من رقم التليفون المصري ----------------
+    function isValidEgyptianPhone(phone) {
+        return /^01[0125][0-9]{8}$/.test((phone || '').trim());
+    }
+
+    // ---------------- طلب شبكة بحد أقصى للانتظار (Timeout) ----------------
+    // بيمنع الموقع من "التعليق" لو النت بطيء أو الشيت مش راد
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
+        }
     }
 
     // ----- استدعاء المنيو الحقيقي من الشيت -----
@@ -244,14 +400,15 @@
         const menuContainer = document.getElementById('dynamic-menu');
         menuContainer.innerHTML = '<div class="loading-container"><div class="loading-spinner">🍞</div><div style="font-weight:bold; color:var(--primary-color);">جاري تحضير المنيو الطازة...</div></div>';
         try {
-            const response = await fetch(apiUrl);
+            const response = await fetchWithTimeout(apiUrl, {}, 12000);
             const data = await response.json();
             bakeryMenu = data.menu || [];
             promoData = data.promos || {};
             if (data.shiftPhone) shiftWhatsAppNumber = data.shiftPhone;
             renderMenu();
         } catch (error) {
-            menuContainer.innerHTML = '<div style="text-align:center; padding:50px; color:red; font-weight:bold;">⚠️ عذراً، حدث خطأ في الاتصال بالسيرفر. حاول تاني.</div>';
+            const isTimeout = error.name === 'AbortError';
+            menuContainer.innerHTML = `<div style="text-align:center; padding:50px; color:red; font-weight:bold;">⚠️ ${isTimeout ? 'الاتصال بطيء جداً، حاول تاني.' : 'عذراً، حدث خطأ في الاتصال بالسيرفر. حاول تاني.'}</div>`;
         }
     }
 
@@ -280,7 +437,7 @@
                 let safeName = escapeHTML(item.name);
                 let safePrice = escapeHTML(item.price);
                 let safeUnit = escapeHTML(item.unit || '');
-                let imgHtml = item.image ? `<img src="${escapeHTML(item.image)}" class="item-img" alt="${safeName}" loading="lazy">` : `<div class="item-img"></div>`;
+                let imgHtml = item.image ? `<img src="${escapeHTML(item.image)}" class="item-img" alt="${safeName}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG;">` : `<img src="${FALLBACK_IMG}" class="item-img" alt="${safeName}">`;
                 
                 let variantHtml = '';
                 let hasVariants = (item.variants && item.variants.length > 0 && item.variants[0].trim() !== "");
@@ -333,14 +490,32 @@
             if(hasVariants || !cartItem) { 
                 act.innerHTML = `<button class="add-btn" onclick="addWithVariant(${sIndex}, ${iIndex})">إضافة 🛒</button>`; 
             } else { 
+                let stepAttr = cartItem.isWeight ? 0.25 : 1;
                 act.innerHTML = `
                 <div class="in-cart-controls">
                     <button class="card-qty-btn" onclick="removeFromCart('${escapeHTML(cartItem.name)}')">-</button>
-                    <input type="number" class="card-qty-input" value="${cartItem.quantity}" onchange="updateQtyDirectly('${escapeHTML(cartItem.name)}', this.value)" readonly>
+                    <input type="number" class="card-qty-input" value="${cartItem.quantity}" min="0" step="${stepAttr}" onchange="updateQtyDirectly('${escapeHTML(cartItem.name)}', this.value)">
                     <button class="card-qty-btn" onclick="addToCart('${escapeHTML(cartItem.name)}', ${item.price})">+</button>
                 </div>`; 
             } 
         });
+    }
+
+    // بيتنادى لما المستخدم يعدّل رقم الكمية يدوياً في خانة العدد (بدل ما يستخدم +/-)
+    function updateQtyDirectly(name, newValue) {
+        let idx = cart.findIndex(i => i.name === name);
+        if (idx === -1) return;
+
+        let qty = parseFloat(newValue);
+        // لو المستخدم كتب حاجة مش رقم أو رقم سالب، ارجع للقيمة الصحيحة اللي كانت متسجلة
+        if (isNaN(qty) || qty < 0) { updateAllItemActions(); return; }
+
+        if (qty <= 0) {
+            cart.splice(idx, 1);
+        } else {
+            cart[idx].quantity = Number(qty.toFixed(2));
+        }
+        saveCart(); updateTopCart(); updateAllItemActions(); updateModalUI();
     }
 
     function addWithVariant(sIndex, iIndex) {
@@ -387,7 +562,7 @@
     }
     
     function updateTopCart() { let t = calculateTotals(); document.getElementById('top-cart-count').innerText = Math.round(t.count); document.getElementById('top-cart-total').innerText = Math.round(t.final) + " ج"; }
-    function saveCart() { localStorage.setItem('familyBakeryCart', JSON.stringify(cart)); }
+    function saveCart() { safeSet('familyBakeryCart', JSON.stringify(cart)); }
     function showToast(m) { let t = document.getElementById("toast"); t.innerText = m; t.className = "show"; setTimeout(() => t.className = "", 3000); }
 
     function filterMenu() { 
@@ -401,6 +576,8 @@
             section.style.display = hasVisible ? 'block' : 'none'; 
         }); 
     }
+    // النسخة "المؤجلة" من البحث - بتتنادى فعلياً من خانة البحث في الـ HTML
+    const debouncedFilterMenu = debounce(filterMenu, 250);
 
     // --- UI Modals ---
     function openCartModal() { document.getElementById('cart-modal').style.display = 'flex'; updateModalUI(); }
@@ -428,8 +605,8 @@
         document.getElementById('old-total').style.display = appliedDiscount > 0 ? "inline" : "none";
         if(appliedDiscount > 0) document.getElementById('old-total').innerText = Math.round(t.sub) + " ج";
         
-        document.getElementById('user-address').value = localStorage.getItem('userAddress') || '';
-        document.getElementById('user-backup-phone').value = localStorage.getItem('userPhone') || '';
+        document.getElementById('user-address').value = safeGetString('userAddress', '');
+        document.getElementById('user-backup-phone').value = safeGetString('userPhone', '');
     }
 
     function applyPromoCode() {
@@ -446,43 +623,142 @@
         msg.style.display = "block"; updateModalUI(); updateTopCart();
     }
 
-    // --- الدفع وإنستا باي ---
-    function setPayment(type) {
+    // ---------------- الدفع (Progressive Disclosure: كاش / أونلاين -> إنستا/محفظة) ----------------
+
+    // Level 1: main choice - cash or online
+    function setPaymentMain(type) {
+        // reset all button states first
         document.getElementById('btn-cash').classList.remove('active');
+        document.getElementById('btn-online').classList.remove('active');
+        document.getElementById('online-sub-options').style.display = 'none';
         document.getElementById('btn-instapay').classList.remove('active');
-        if(type === 'instapay') {
-            document.getElementById('btn-instapay').classList.add('active');
-            document.getElementById('instapay-info').style.display = 'block';
-            selectedPayment = "إنستا باي 📱";
+        document.getElementById('btn-wallet').classList.remove('active');
+        document.getElementById('instapay-info').style.display = 'none';
+        document.getElementById('wallet-info').style.display = 'none';
+
+        if (type === 'online') {
+            document.getElementById('btn-online').classList.add('active');
+            document.getElementById('online-sub-options').style.display = 'flex';
+            // default to InstaPay the first time "Online" is opened
+            setPaymentSub('instapay');
         } else {
             document.getElementById('btn-cash').classList.add('active');
-            document.getElementById('instapay-info').style.display = 'none';
             selectedPayment = "كاش 💵";
         }
     }
+
+    // Level 2/3: sub choice under "Online" - InstaPay or E-Wallet, reveals matching payment details
+    function setPaymentSub(type) {
+        document.getElementById('btn-instapay').classList.remove('active');
+        document.getElementById('btn-wallet').classList.remove('active');
+        document.getElementById('instapay-info').style.display = 'none';
+        document.getElementById('wallet-info').style.display = 'none';
+
+        if (type === 'wallet') {
+            document.getElementById('btn-wallet').classList.add('active');
+            document.getElementById('wallet-info').style.display = 'block';
+            selectedPayment = "محفظة إلكترونية 👛";
+        } else {
+            document.getElementById('btn-instapay').classList.add('active');
+            document.getElementById('instapay-info').style.display = 'block';
+            selectedPayment = "إنستا باي 📱";
+        }
+    }
+
     function copyInsta() { navigator.clipboard.writeText('01030981097'); showToast("تم نسخ الرقم!"); }
+    function copyWallet() { navigator.clipboard.writeText('010XXXXXXX'); showToast("تم نسخ الرقم!"); }
+
+    // --- فوتر: فتح/قفل قايمة اللينكات (سوشيال + لوكيشن) ---
+    function toggleFooterMenu() {
+        let menu = document.getElementById('footer-links-menu');
+        let btn = document.getElementById('footer-toggle');
+        let isOpen = menu.style.display === 'flex';
+        menu.style.display = isOpen ? 'none' : 'flex';
+        btn.classList.toggle('open', !isOpen);
+    }
+    // قفل القايمة لو المستخدم دَس في أي حتة تانية بره الفوتر
+    document.addEventListener('click', function(e) {
+        let menu = document.getElementById('footer-links-menu');
+        let btn = document.getElementById('footer-toggle');
+        if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && !btn.contains(e.target)) {
+            menu.style.display = 'none';
+            btn.classList.remove('open');
+        }
+    });
 
     // --- الشات بوت ---
     function toggleChat() { let c = document.getElementById('chat-window'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
     function showAnswer(id) { let e = document.getElementById(id); e.style.display = e.style.display === 'block' ? 'none' : 'block'; }
 
-    function saveUserData() { localStorage.setItem('userAddress', document.getElementById('user-address').value); localStorage.setItem('userPhone', document.getElementById('user-backup-phone').value); }
+    // ---------------- إغلاق المودالز بسهولة (UX) ----------------
+    // دَوس على المساحة الرمادية حوالين أي مودال (بعيد عن الكارت نفسه) يقفله
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) overlay.style.display = 'none';
+        });
+    });
 
-    // --- تتبع الطلبات من الشيت ---
-    function openTrackingModal() { document.getElementById('tracking-modal').style.display = 'flex'; }
+    // زرار Esc يقفل أي مودال مفتوح، وكمان قايمة لينكات الفوتر لو مفتوحة
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' && e.key !== 'Esc') return;
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            if (overlay.style.display === 'flex') overlay.style.display = 'none';
+        });
+        let footerMenu = document.getElementById('footer-links-menu');
+        let footerBtn = document.getElementById('footer-toggle');
+        if (footerMenu && footerMenu.style.display === 'flex') {
+            footerMenu.style.display = 'none';
+            footerBtn.classList.remove('open');
+        }
+    });
+
+    function saveUserData() { safeSet('userAddress', document.getElementById('user-address').value); safeSet('userPhone', document.getElementById('user-backup-phone').value); }
+
+    // ---------------- تتبع الطلبات ----------------
+
+    function openTrackingModal() {
+        document.getElementById('tracking-modal').style.display = 'flex';
+        // Show what's saved on this device immediately, before any search is made
+        renderLocalHistory();
+    }
     function closeTrackingModal() { document.getElementById('tracking-modal').style.display = 'none'; }
-    
+
+    // Renders orders stored in localStorage (this device only)
+    function renderLocalHistory() {
+        let resultsDiv = document.getElementById('tracking-results');
+        let localHistory = safeGetJSON('familyBakeryHistory', []);
+
+        if (localHistory.length === 0) {
+            resultsDiv.innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-weight:bold;">مفيش طلبات مسجلة على الجهاز ده لسه.<br>لو طلبت من جهاز تاني، دور برقم تليفونك فوق 👆</div>';
+            return;
+        }
+
+        resultsDiv.innerHTML = '<p style="font-size:0.85em; color:#999; margin-bottom:10px;">📱 طلباتك المحفوظة على الجهاز ده:</p>';
+        localHistory.forEach(order => {
+            resultsDiv.innerHTML += `
+            <div class="history-card">
+                <div class="history-date">📅 ${escapeHTML(order.date)}</div>
+                <div style="font-size:0.9em; margin-bottom:8px; color:#444;">${escapeHTML(order.details).replace(/\n/g, '<br>')}</div>
+                <div style="display:flex; justify-content:space-between; border-top:1px solid #eee; padding-top:8px;">
+                    <span class="history-total">الإجمالي: ${escapeHTML(order.total)} ج</span>
+                    <span style="font-size:0.85em; background:#e0f7fa; color:#006064; padding:3px 8px; border-radius:5px;">${escapeHTML(order.status)}</span>
+                </div>
+            </div>`;
+        });
+    }
+
+    // Fallback: search the Google Sheets API by phone number (useful from another device)
     async function fetchOrderHistory() {
         let phone = document.getElementById('track-phone-input').value.trim();
         let resultsDiv = document.getElementById('tracking-results');
         
-        if(!phone || phone.length < 10) { showToast("أدخل رقم تليفون صحيح!"); return; }
+        if(!isValidEgyptianPhone(phone)) { showToast("أدخل رقم تليفون مصري صحيح (01 ومكون من 11 رقم)"); return; }
         
         resultsDiv.innerHTML = '<div class="loading-spinner" style="font-size:2em;">⏳</div><div style="text-align:center; font-weight:bold;">جاري البحث في السيستم...</div>';
         
         try {
-            // بنبعت رقم التليفون للـ API بتاعك عشان يدور عليه
-            let response = await fetch(`${apiUrl}?action=getHistory&phone=${encodeURIComponent(phone)}`);
+            // بنبعت رقم التليفون للـ API بتاعك عشان يدور عليه (بحد أقصى 12 ثانية انتظار)
+            let response = await fetchWithTimeout(`${apiUrl}?action=getHistory&phone=${encodeURIComponent(phone)}`, {}, 12000);
             let data = await response.json();
             
             if(data.success && data.orders && data.orders.length > 0) {
@@ -502,32 +778,57 @@
                 resultsDiv.innerHTML = '<div style="text-align:center; padding:20px; color:#d32f2f; font-weight:bold;">مفيش أوردرات متسجلة بالرقم ده.</div>';
             }
         } catch (error) {
-            resultsDiv.innerHTML = '<div style="text-align:center; padding:20px; color:#d32f2f; font-weight:bold;">حدث خطأ في الاتصال بالسيستم.</div>';
+            const isTimeout = error.name === 'AbortError';
+            resultsDiv.innerHTML = `<div style="text-align:center; padding:20px; color:#d32f2f; font-weight:bold;">${isTimeout ? '⏱️ الاتصال بطيء جداً، حاول تاني.' : 'حدث خطأ في الاتصال بالسيستم.'}</div>`;
         }
     }
 
     // --- إرسال الطلب ---
     function sendOrder() {
-        const addr = document.getElementById('user-address').value;
-        const ph = document.getElementById('user-backup-phone').value;
+        // منع إرسال نفس الأوردر مرتين لو المستخدم دَس على الزرار أكتر من مرة بسرعة
+        if (isSendingOrder) return;
+
+        const addr = document.getElementById('user-address').value.trim();
+        const ph = document.getElementById('user-backup-phone').value.trim();
+
         if(!addr || !ph || cart.length === 0) { alert("أكمل البيانات وضيف منتجات للسلة أولاً!"); return; }
-        
+        if(!isValidEgyptianPhone(ph)) { alert("رقم التليفون مش صحيح. لازم يبدأ بـ 01 ويكون 11 رقم بالظبط."); return; }
+
+        // قفل الزرار طول ما بنجهز الأوردر عشان نمنع الدوس المتكرر
+        isSendingOrder = true;
+        const btn = document.getElementById('confirm-order-btn');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'not-allowed'; btn.innerText = 'جاري تجهيز الأوردر... ⏳'; }
+
         let t = calculateTotals(), detail = "", list = [];
         cart.forEach(i => { detail += `🔸 ${i.name} | ${i.quantity} | ${i.price * i.quantity} ج\n`; list.push(`${i.name}=${i.quantity}`); });
         if(appliedDiscount > 0) detail += `\n🎁 خصم: -${Math.round(t.d)} ج (كود: ${appliedPromoCode})\n`;
 
-        // تسجيل الأوردر في الشيت
-        fetch(`${apiUrl}?address=${encodeURIComponent(addr)}&phone=${encodeURIComponent(ph)}&total=${Math.round(t.final)}&orderDetails=${encodeURIComponent(detail)}&products=${encodeURIComponent(list.join("|"))}&promoCode=${appliedPromoCode}&payment=${encodeURIComponent(selectedPayment)}`, {method:'POST', mode:'no-cors'});
+        // تسجيل الأوردر في الشيت (fire-and-forget - الـ no-cors مايسمحش بقراءة الرد أصلاً)
+        fetch(`${apiUrl}?address=${encodeURIComponent(addr)}&phone=${encodeURIComponent(ph)}&total=${Math.round(t.final)}&orderDetails=${encodeURIComponent(detail)}&products=${encodeURIComponent(list.join("|"))}&promoCode=${appliedPromoCode}&payment=${encodeURIComponent(selectedPayment)}`, {method:'POST', mode:'no-cors'}).catch(() => {});
+
+        // --- حفظ الطلب في السجل المحلي (Local Order History) قبل تفريغ السلة ---
+        let localHistory = safeGetJSON('familyBakeryHistory', []);
+        localHistory.unshift({
+            date: new Date().toLocaleString('ar-EG'),
+            details: detail,
+            total: Math.round(t.final),
+            status: "قيد التنفيذ"
+        });
+        safeSet('familyBakeryHistory', JSON.stringify(localHistory));
 
         let msg = `🍞 *أوردر جديد | فاملي بيكري*\n\n📦 *التفاصيل:*\n${detail}\n💰 *الإجمالي:* ${Math.round(t.final)} ج.م\n💳 *طريقة الدفع:* ${selectedPayment}\n\n📍 *العنوان:* ${addr}\n📞 *التليفون:* ${ph}`;
-        if(selectedPayment.includes("إنستا")) msg += "\n\n(مرفق صورة تحويل إنستا باي)";
+        if(selectedPayment.includes("إنستا") || selectedPayment.includes("محفظة")) msg += "\n\n(مرفق صورة تحويل الدفع)";
 
         window.open(`https://wa.me/${shiftWhatsAppNumber}?text=${encodeURIComponent(msg)}`, '_blank');
         
         cart = []; appliedDiscount = 0; appliedPromoCode = ""; saveCart(); updateTopCart(); updateAllItemActions(); closeCartModal(); showToast("🚀 تم تسجيل الأوردر!");
+
+        // فك القفل عن الزرار عشان يقدر يعمل أوردر جديد تاني بعد كده
+        isSendingOrder = false;
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; btn.innerText = 'تأكيد وطلب عبر واتساب ✅'; }
     }
 
-    window.onload = () => { fetchMenu(); document.getElementById('user-address').value = localStorage.getItem('userAddress') || ''; document.getElementById('user-backup-phone').value = localStorage.getItem('userPhone') || ''; };
+    window.onload = () => { fetchMenu(); document.getElementById('user-address').value = safeGetString('userAddress', ''); document.getElementById('user-backup-phone').value = safeGetString('userPhone', ''); };
 </script>
 </body>
 </html>
