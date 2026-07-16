@@ -15,7 +15,6 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#d84315">
 
-    <!-- ---------------- SEO & مشاركة اللينك (Open Graph / Twitter Card) ---------------- -->
     <meta name="description" content="فاملي بيكري - اطلب أونلاين من قائمة الخبز والمخبوزات الطازة يومياً، واختار الدفع كاش أو أونلاين، وتابع أوردراتك بسهولة.">
     <meta name="keywords" content="فاملي بيكري, مخبوزات, خبز طازة, توصيل مخبوزات, بيكري, اوردر اونلاين">
     <meta property="og:type" content="website">
@@ -29,6 +28,8 @@
     <meta name="twitter:image" content="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -148,7 +149,6 @@
 <body>
 
 <header class="top-header">
-    <!-- Logo: replace logo.png with the real bakery logo file. Kept responsive via .logo-img (max-height: 45px) -->
     <div class="brand"><img src="logo.png" alt="فاملي بيكري" class="logo-img"></div>
     <div class="header-actions">
         <button class="icon-btn" onclick="openTrackingModal()">📜 تتبع أوردرك</button>
@@ -172,31 +172,29 @@
 <nav class="category-nav" id="nav-bar"></nav>
 <div class="container"><div id="dynamic-menu"></div></div>
 
-<!-- ---------------- Footer ---------------- -->
 <footer class="site-footer">
     <div class="footer-inner">
-        <!-- Logo + "لينكاتنا" pill: click toggles the links dropdown below -->
         <div class="footer-brand-toggle" id="footer-toggle" onclick="toggleFooterMenu()">
             <img src="logo.png" alt="فاملي بيكري">
             <span class="label">لينكاتنا</span>
             <span class="chevron">▾</span>
         </div>
 
-        <!-- Dropdown: social links + location, hidden until the pill above is clicked -->
         <div class="footer-links-menu" id="footer-links-menu">
-            <a href="https://wa.me/201030981097" target="_blank" rel="noopener"><span class="link-icon">📱</span> واتساب</a>
-            <a href="https://facebook.com/familybakery" target="_blank" rel="noopener"><span class="link-icon">📘</span> فيسبوك</a>
-            <a href="https://instagram.com/familybakery" target="_blank" rel="noopener"><span class="link-icon">📷</span> إنستجرام</a>
-            <a href="https://tiktok.com/@familybakery" target="_blank" rel="noopener"><span class="link-icon">🎵</span> تيك توك</a>
-            <a href="https://maps.google.com/?q=Family+Bakery" target="_blank" rel="noopener"><span class="link-icon">📍</span> لوكيشن المحل</a>
+            <a href="https://wa.me/201030981097" target="_blank" rel="noopener"><span class="link-icon"><i class="fa-brands fa-whatsapp" style="color: #25D366;"></i></span> واتساب</a>
+            <a href="https://facebook.com/familybakery" target="_blank" rel="noopener"><span class="link-icon"><i class="fa-brands fa-facebook" style="color: #1877F2;"></i></span> فيسبوك</a>
+            <a href="https://instagram.com/familybakery" target="_blank" rel="noopener"><span class="link-icon"><i class="fa-brands fa-instagram" style="color: #E1306C;"></i></span> إنستجرام</a>
+            <a href="https://tiktok.com/@familybakery" target="_blank" rel="noopener"><span class="link-icon"><i class="fa-brands fa-tiktok" style="color: #000000;"></i></span> تيك توك</a>
+            <a href="https://maps.google.com/?q=Family+Bakery" target="_blank" rel="noopener"><span class="link-icon"><i class="fa-solid fa-location-dot" style="color: #EA4335;"></i></span> لوكيشن المحل</a>
         </div>
 
-        <!-- Landline number, shown right under the logo -->
         <div class="footer-landline">
             ☎️ رقم أرضي: <a href="tel:0223456789">0222699900</a>
         </div>
 
-        <div class="footer-credit">Powered by Ahmed Wolf 🐺</div>
+        <div class="footer-credit">
+            Powered by <a href="حط_اللينك_بتاعك_هنا" target="_blank" rel="noopener" style="color: #ffb74d; text-decoration: none; font-weight: 900; border-bottom: 1px dashed #ffb74d; padding-bottom: 2px;">Ahmed Wolf 🐺</a>
+        </div>
     </div>
 </footer>
 
@@ -266,22 +264,18 @@
                 <input type="tel" id="user-backup-phone" placeholder="📞 رقم التليفون *" oninput="saveUserData()" style="width:100%; padding:14px; border-radius:12px; border:1.5px solid #ffe0b2; font-family:'Cairo'; outline:none;">
             </div>
 
-            <!-- ---------------- Progressive Disclosure Payment UI ---------------- -->
             <h4 style="margin-bottom: 5px; color: var(--dark-bg);">طريقة الدفع:</h4>
 
-            <!-- Level 1: Cash vs Online -->
             <div class="payment-options">
                 <button class="pay-btn active" id="btn-cash" onclick="setPaymentMain('cash')">💵 كاش عند الاستلام</button>
                 <button class="pay-btn" id="btn-online" onclick="setPaymentMain('online')">💳 دفع أونلاين</button>
             </div>
 
-            <!-- Level 2: revealed only when "Online" is chosen -->
             <div class="payment-options payment-sub-options" id="online-sub-options">
                 <button class="pay-btn" id="btn-instapay" onclick="setPaymentSub('instapay')">📱 إنستا باي</button>
                 <button class="pay-btn" id="btn-wallet" onclick="setPaymentSub('wallet')">👛 محفظة إلكترونية</button>
             </div>
 
-            <!-- Level 3a: InstaPay details -->
             <div id="instapay-info" class="instapay-details">
                 <p style="margin:0 0 10px 0; font-weight:bold; color:#4a148c;">حول المبلغ على الرقم ده:</p>
                 <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
@@ -291,7 +285,6 @@
                 <p style="font-size:0.85em; color:#666; margin-top:10px;">(برجاء إرسال سكرين شوت التحويل مع رسالة الواتساب لتأكيد الطلب)</p>
             </div>
 
-            <!-- Level 3b: E-Wallet details -->
             <div id="wallet-info" class="wallet-details">
                 <p style="margin:0 0 10px 0; font-weight:bold; color:#0d47a1;">حول المبلغ على رقم المحفظة:</p>
                 <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
@@ -339,7 +332,7 @@
 
     function escapeHTML(str) {
         if (!str) return "";
-        return str.toString().replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        return str.toString().replace(/[&<>'"]/g, tag => ({ '&': '&', '<': '<', '>': '>', "'": ''', '"': '"' }[tag] || tag));
     }
 
     // ---------------- Local Storage آمن ----------------
