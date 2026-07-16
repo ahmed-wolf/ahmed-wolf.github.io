@@ -332,9 +332,14 @@
 
     function escapeHTML(str) {
         if (!str) return "";
-        return str.toString().replace(/[&<>'"]/g, tag => ({ '&': '&', '<': '<', '>': '>', "'": ''', '"': '"' }[tag] || tag));
+        return str.toString().replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag));
     }
-
     // ---------------- Local Storage آمن ----------------
     // بيمنع الموقع من الوقوع لو localStorage مش متاح (وضع التصفح الخاص / الجهاز رافض تخزين)
     function safeGetJSON(key, fallback) {
