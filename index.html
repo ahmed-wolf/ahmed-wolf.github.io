@@ -409,7 +409,7 @@
         const menuContainer = document.getElementById('dynamic-menu');
         menuContainer.innerHTML = '<div class="loading-container"><div class="loading-spinner">🍞</div><div style="font-weight:bold; color:var(--primary-color);">جاري تحضير المنيو الطازة...</div></div>';
         try {
-            const response = await fetchWithTimeout(apiUrl, {}, 12000);
+            const response = await fetchWithTimeout(apiUrl, {}, 30000);
             const data = await response.json();
             bakeryMenu = data.menu || [];
             promoData = data.promos || {};
@@ -767,7 +767,7 @@
         
         try {
             // بنبعت رقم التليفون للـ API بتاعك عشان يدور عليه (بحد أقصى 12 ثانية انتظار)
-            let response = await fetchWithTimeout(`${apiUrl}?action=getHistory&phone=${encodeURIComponent(phone)}`, {}, 12000);
+            let response = await fetchWithTimeout(`${apiUrl}?action=getHistory&phone=${encodeURIComponent(phone)}`, {}, 30000);
             let data = await response.json();
             
             if(data.success && data.orders && data.orders.length > 0) {
