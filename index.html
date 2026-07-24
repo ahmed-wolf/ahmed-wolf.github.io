@@ -391,7 +391,7 @@
 
     // ---------------- طلب شبكة بحد أقصى للانتظار (Timeout) ----------------
     // بيمنع الموقع من "التعليق" لو النت بطيء أو الشيت مش راد
-    async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         try {
