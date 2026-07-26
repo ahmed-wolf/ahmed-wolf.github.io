@@ -1,4 +1,5 @@
-!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CEPNB7PL7F"></script>
@@ -677,8 +678,23 @@
         checkUpsellPrompt();
     }
  
-    function applyPromoCode() {
+    // بيسأل السيرفر: كام أوردر فعلي اتسجل بنفس رقم التليفون ده مستخدم نفس كود الخصم ده؟
+    // ده بيغلق ثغرة "غيّر الجهاز بس سيب نفس الرقم" لأن السيرفر بيتأكد من سجل الأوردرات الحقيقي، مش localStorage بس
+    async function getServerPromoUsage(phone, code) {
+        try {
+            let response = await fetchWithTimeout(`${apiUrl}?action=checkPromoUsage&phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`, {}, 15000);
+            let data = await response.json();
+            return (data && data.success) ? (parseInt(data.usageCount, 10) || 0) : 0;
+        } catch (err) {
+            // لو السيرفر بطيء أو النت وقع، منمنعش العميل يستخدم الكود بسبب مشكلة شبكة - نرجع 0 ونسيب فحص الجهاز يكمل شغله
+            console.warn('تعذر التحقق من استخدام الكود على السيرفر:', err);
+            return 0;
+        }
+    }
+ 
+    async function applyPromoCode() {
         let code = document.getElementById('promo-code').value.trim(); 
+        let phone = document.getElementById('user-backup-phone').value.trim();
         let msg = document.getElementById('promo-msg');
         let foundCode = Object.keys(promoData).find(key => key.toLowerCase() === code.toLowerCase());
  
@@ -686,10 +702,18 @@
             let promo = promoData[foundCode];
             let maxPerDevice = parseInt(promo.maxPerDevice, 10) || 0; // 0 = بلا حدود
  
-            // لو الكود له حد أقصى للاستخدام لكل جهاز، نتأكد المستخدم مستهلكش الحد ده
             if (maxPerDevice > 0) {
-                let usageCount = parseInt(safeGetString(`promoUsage_${foundCode.toLowerCase()}`, '0'), 10) || 0;
-                if (usageCount >= maxPerDevice) {
+                msg.style.display = "block"; msg.style.color = "#888"; msg.innerText = "⏳ جاري التحقق من الكود...";
+ 
+                // الحد الأقصى بيتفحص بطريقتين مع بعض: عدد مرات الاستخدام على الجهاز ده (localStorage)، وعدد مرات الاستخدام الفعلي برقم التليفون ده على السيرفر
+                let deviceUsage = parseInt(safeGetString(`promoUsage_${foundCode.toLowerCase()}`, '0'), 10) || 0;
+                let serverUsage = 0;
+                if (isValidEgyptianPhone(phone)) {
+                    serverUsage = await getServerPromoUsage(phone, foundCode);
+                }
+                let effectiveUsage = Math.max(deviceUsage, serverUsage);
+ 
+                if (effectiveUsage >= maxPerDevice) {
                     appliedDiscount = 0; appliedMaxCap = 0; appliedPromoCode = "";
                     msg.innerText = "❌ لقد استنفدت الحد الأقصى لاستخدام هذا الكود";
                     msg.style.color = "red";
@@ -923,7 +947,7 @@
     }
  
     // --- إرسال الطلب ---
-    function sendOrder() {
+    async function sendOrder() {
         // منع إرسال نفس الأوردر مرتين لو المستخدم دَس على الزرار أكتر من مرة بسرعة
         if (isSendingOrder) return;
  
@@ -935,6 +959,30 @@
  
         // قفل الزرار طول ما بنجهز الأوردر عشان نمنع الدوس المتكرر
         isSendingOrder = true;
+        const preCheckBtn = document.getElementById('confirm-order-btn');
+        if (preCheckBtn) { preCheckBtn.disabled = true; preCheckBtn.style.opacity = '0.6'; preCheckBtn.style.cursor = 'not-allowed'; preCheckBtn.innerText = 'جاري التحقق... ⏳'; }
+ 
+        // فحص أخير قبل الإرسال: لو فيه كود خصم مفعّل، نتأكد إنه لسه صالح برقم التليفون النهائي
+        // (ده بيمنع لعبة: يفعّل الكود قبل ما يكتب رقمه، أو يغيّر الرقم بعد التفعيل)
+        if (appliedPromoCode && promoData[appliedPromoCode]) {
+            let promo = promoData[appliedPromoCode];
+            let maxPerDevice = parseInt(promo.maxPerDevice, 10) || 0;
+            if (maxPerDevice > 0) {
+                let deviceUsage = parseInt(safeGetString(`promoUsage_${appliedPromoCode.toLowerCase()}`, '0'), 10) || 0;
+                let serverUsage = await getServerPromoUsage(ph, appliedPromoCode);
+                let effectiveUsage = Math.max(deviceUsage, serverUsage);
+                if (effectiveUsage >= maxPerDevice) {
+                    appliedDiscount = 0; appliedMaxCap = 0; appliedPromoCode = "";
+                    let msg = document.getElementById('promo-msg');
+                    msg.innerText = "❌ لقد استنفدت الحد الأقصى لاستخدام هذا الكود"; msg.style.color = "red"; msg.style.display = "block";
+                    updateModalUI(); updateTopCart();
+                    isSendingOrder = false;
+                    if (preCheckBtn) { preCheckBtn.disabled = false; preCheckBtn.style.opacity = '1'; preCheckBtn.style.cursor = 'pointer'; preCheckBtn.innerText = 'تأكيد وطلب عبر واتساب ✅'; }
+                    alert("كود الخصم بقى غير صالح لإنه اتستخدم قبل كده بنفس الرقم. تم حذفه من الأوردر، تقدر تأكد الطلب تاني من غيره.");
+                    return;
+                }
+            }
+        }
         const btn = document.getElementById('confirm-order-btn');
         if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'not-allowed'; btn.innerText = 'جاري تجهيز الأوردر... ⏳'; }
  
