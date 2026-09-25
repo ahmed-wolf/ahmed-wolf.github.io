@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -619,7 +618,12 @@
     function calculateTotals() { 
         let sub = 0, count = 0; 
         cart.forEach(i => { sub += (i.price * i.quantity); count += i.isWeight ? 1 : i.quantity; }); 
-        let d = Math.min(sub * appliedDiscount, appliedMaxCap || 999999); 
+        
+        let d = 0;
+        // شرط الحد الأدنى: الخصم يشتغل فقط لو الإجمالي 100 جنيه أو أكتر
+        if (appliedDiscount > 0 && sub >= 100) {
+            d = Math.min(sub * appliedDiscount, appliedMaxCap || 999999); 
+        }
         return { sub: Number(sub.toFixed(2)), final: Number((sub - d).toFixed(2)), count: count, d: Number(d.toFixed(2)) }; 
     }
     
@@ -666,7 +670,19 @@
                 </div>`; 
             }); 
         }
+        
         let t = calculateTotals(); 
+
+        // إلغاء الخصم أوتوماتيك لو العميل مسح حاجة من السلة والإجمالي نزل عن 100
+        if (appliedPromoCode && t.sub < 100) {
+            appliedDiscount = 0; appliedMaxCap = 0; appliedPromoCode = "";
+            t = calculateTotals(); // إعادة الحساب
+            let msg = document.getElementById('promo-msg');
+            msg.innerText = "⚠️ تم إلغاء الخصم لأن الإجمالي أقل من 100 جنيه";
+            msg.style.color = "#ff9800";
+            msg.style.display = "block";
+        }
+
         document.getElementById('modal-total-value').innerText = Math.round(t.final);
         document.getElementById('old-total').style.display = appliedDiscount > 0 ? "inline" : "none";
         if(appliedDiscount > 0) document.getElementById('old-total').innerText = Math.round(t.sub) + " ج";
@@ -698,7 +714,17 @@
         let msg = document.getElementById('promo-msg');
         let foundCode = Object.keys(promoData).find(key => key.toLowerCase() === code.toLowerCase());
  
+        let t = calculateTotals();
+
         if (foundCode) {
+            // التحقق من الحد الأدنى قبل التفعيل
+            if (t.sub < 100) {
+                msg.innerText = "❌ الحد الأدنى لاستخدام الخصم هو 100 جنيه"; 
+                msg.style.color = "red"; 
+                msg.style.display = "block";
+                return;
+            }
+
             let promo = promoData[foundCode];
             let maxPerDevice = parseInt(promo.maxPerDevice, 10) || 0; // 0 = بلا حدود
  
@@ -1026,4 +1052,3 @@
 </script>
 </body>
 </html>
- 
