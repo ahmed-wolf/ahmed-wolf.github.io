@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Bakery Partner | لوحة الإدارة والطلبات</title>
+  <meta name="theme-color" content="#235848">
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="./theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="./web_config.js"></script>
+  <style>
+    .partner-shell { display: none; min-height: 100vh; padding-top: 64px; padding-bottom: 76px; }
+    @media (min-width: 900px) { .partner-shell { padding-bottom: 24px; } }
+    .partner-wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
+
+    /* Tabs */
+    .p-tabs {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--brand-green-dark); border-top: 2px solid var(--brand-gold);
+      display: grid; grid-template-columns: repeat(4, 1fr); z-index: 950;
+    }
+    .p-tab-btn {
+      background: transparent; border: none; color: rgba(244, 239, 226, 0.72);
+      padding: 10px 4px; font-weight: 800; font-size: 0.8rem;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .p-tab-btn.active { background: var(--brand-green); color: #fff; }
+    @media (min-width: 900px) {
+      .p-tabs {
+        position: static; border-radius: 16px; margin-bottom: 18px;
+        border: 1.5px solid var(--brand-gold); overflow: hidden;
+      }
+      .p-tab-btn { flex-direction: row; justify-content: center; gap: 8px; padding: 13px; font-size: 0.95rem; }
+    }
+
+    .p-section { display: none; }
+    .p-section.active { display: block; }
+
+    /* Cards & Grids */
+    .p-card {
+      background: var(--brand-card); border: 1.5px solid rgba(184, 163, 120, 0.55);
+      border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); margin-bottom: 14px;
+    }
+    .orders-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 820px) { .orders-grid { grid-template-columns: repeat(2, 1fr); } }
+    .order-card {
+      background: var(--brand-card); border: 2px solid rgba(184, 163, 120, 0.65);
+      border-radius: 16px; padding: 14px; box-shadow: var(--shadow-sm);
+    }
+    .order-card.urgent { border-color: var(--danger); background: #FFF9F9; }
+
+    .menu-admin-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--brand-card); border: 1px solid rgba(184, 163, 120, 0.5);
+      border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .toggle-pill {
+      padding: 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 800;
+      border: 1px solid var(--brand-gold); cursor: pointer; background: #eee; color: #555;
+    }
+    .toggle-pill.on { background: var(--brand-green); color: #fff; border-color: var(--brand-green); }
+
+    .form-grid-2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 720px) { .form-grid-2 { grid-template-columns: repeat(2, 1fr); } }
+    .f-label { display: block; font-size: 0.82rem; font-weight: 800; color: var(--brand-green-dark); margin-bottom: 4px; }
+
+    /* Login Gate */
+    .login-gate {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 16px; background: linear-gradient(135deg, var(--brand-green-dark), var(--brand-green));
+    }
+    .login-box {
+      background: var(--brand-beige); border: 3px solid var(--brand-gold);
+      border-radius: 22px; width: 100%; max-width: 420px; padding: 26px;
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.45);
+    }
+
+    #printTicketArea { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #printTicketArea, #printTicketArea * { visibility: visible; }
+      #printTicketArea {
+        display: block; position: absolute; top: 0; right: 0; width: 72mm;
+        padding: 4mm; direction: rtl; background: #fff; color: #000; font-family: 'Cairo', sans-serif;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- بوابة تسجيل الدخول المؤمّنة -->
+<div id="loginGate" class="login-gate">
+  <div class="login-box">
+    <div style="text-align:center; margin-bottom:18px;">
+      <img src="logo.png" alt="FB" style="height:64px; margin:0 auto 8px; display:block;" onerror="this.style.display='none';">
+      <h2 style="margin:0; color:var(--brand-green-dark); font-weight:900;">لوحة إدارة Family Bakery</h2>
+      <small style="color:var(--ink-muted); font-weight:700;">الدخول مقتصر على الإدارة فقط</small>
+    </div>
+    <div id="loginErr" style="display:none; background:var(--danger-soft); color:var(--danger); padding:10px; border-radius:10px; font-weight:800; font-size:0.86rem; text-align:center; margin-bottom:12px;"></div>
+    <label class="f-label">📧 البريد الإلكتروني للإدارة:</label>
+    <input type="email" id="manualEmail" class="fb-input" placeholder="admin@example.com" dir="ltr" autocomplete="username" style="margin-bottom:10px;">
+    <label class="f-label">🔑 كلمة المرور:</label>
+    <input type="password" id="loginPin" class="fb-input" placeholder="••••••••" dir="ltr" autocomplete="current-password" style="margin-bottom:16px;" onkeydown="if(event.key==='Enter') doPartnerLogin();">
+    <button type="button" id="loginSubmitBtn" class="btn-primary" style="padding:13px;" onclick="doPartnerLogin()">🔓 تسجيل الدخول</button>
+  </div>
+</div>
+
+<!-- شاشة البارتنر -->
+<div id="partnerShell" class="partner-shell">
+  <header class="fb-header">
+    <div class="fb-brand">
+      <div class="fb-logo-fallback" style="display:flex;">FB</div>
+      <div>
+        <span class="fb-brand-title">Partner Dashboard</span>
+        <span class="fb-brand-sub" id="partnerUserLabel">مرحباً</span>
+      </div>
+    </div>
+    <div class="fb-header-actions">
+      <select id="quickStoreStatus" class="fb-select" style="width:auto; padding:5px 10px; font-size:0.8rem;" onchange="quickSaveStatus(this.value)">
+        <option value="open">🟢 مفتوح</option>
+        <option value="busy">🟡 مشغول</option>
+        <option value="closed">🔴 مغلق</option>
+      </select>
+      <button type="button" id="soundToggleBtn" class="fb-pill-btn" onclick="toggleShiftSound()">🔕 بدء الشيفت</button>
+      <button type="button" class="fb-pill-btn" onclick="partnerLogout()">🚪</button>
+    </div>
+  </header>
+
+  <div class="partner-wrap">
+    <nav class="p-tabs">
+      <button type="button" class="p-tab-btn active" onclick="switchTab('orders', this)"><span>🔔</span><span>الطلبات <b id="pendingOrdersCount">(0)</b></span></button>
+      <button type="button" class="p-tab-btn" onclick="switchTab('menu', this)"><span>🥐</span><span>المنيو والصور</span></button>
+      <button type="button" class="p-tab-btn" onclick="switchTab('settings', this)"><span>⚙️</span><span>الإعدادات والخصم</span></button>
+      <button type="button" class="p-tab-btn" onclick="switchTab('qr', this)"><span>📱</span><span>مولّد QR</span></button>
+    </nav>
+
+    <!-- 1. الطلبات اللايف -->
+    <section id="tab-orders" class="p-section active">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+        <div class="filter-chips">
+          <button type="button" class="filter-btn active" onclick="setOrderFilter('pending', this)">🔔 جديد / بانتظار التوجيه</button>
+          <button type="button" class="filter-btn" onclick="setOrderFilter('active', this)">🔥 قيد التحضير</button>
+          <button type="button" class="filter-btn" onclick="setOrderFilter('done', this)">✅ جاهز / مكتمل</button>
+          <button type="button" class="filter-btn" onclick="setOrderFilter('cancelled', this)">❌ مرفوض</button>
+        </div>
+        <button type="button" class="btn-outline" style="padding:7px 14px;" onclick="loadOrders()">تحديث 🔄</button>
+      </div>
+      <div id="ordersGrid" class="orders-grid"></div>
+    </section>
+
+    <!-- 2. إدارة المنيو والصور -->
+    <section id="tab-menu" class="p-section">
+      <div class="p-card" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;">
+        <div style="display:flex; gap:8px; flex:1; min-width:240px;">
+          <input type="text" id="adminMenuSearch" class="fb-input" placeholder="🔍 ابحث في الأصناف..." oninput="renderAdminMenu()">
+          <select id="adminCatFilter" class="fb-select" style="width:170px;" onchange="renderAdminMenu()"></select>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-outline" onclick="openAddCategoryModal()">📂 قسم جديد</button>
+          <button type="button" class="btn-primary" style="width:auto;" onclick="openItemModal()">➕ إضافة صنف</button>
+        </div>
+      </div>
+      <div id="adminMenuList"></div>
+    </section>
+
+    <!-- 3. الإعدادات وأكواد الخصم -->
+    <section id="tab-settings" class="p-section">
+      <div class="p-card">
+        <h3 style="margin:0 0 14px; color:var(--brand-green-dark); font-weight:900;">💳 أرقام الدفع والاتصال والروابط (بدون لمس الكود)</h3>
+        <div class="form-grid-2">
+          <div><label class="f-label">رقم الواتساب (بكود الدولة 201...):</label><input id="setWa" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رقم إنستا باي:</label><input id="setInsta" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رقم المحفظة الإلكترونية:</label><input id="setWallet" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">أرضي الفرع القديم:</label><input id="setLandOld" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">أرضي فرع السوق / شارع البحر:</label><input id="setLandBahr" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رابط تيك توك:</label><input id="setTiktok" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رابط فيسبوك:</label><input id="setFb" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رابط إنستجرام:</label><input id="setIg" class="fb-input" dir="ltr"></div>
+          <div><label class="f-label">رابط اللوكيشن (Google Maps):</label><input id="setMaps" class="fb-input" dir="ltr"></div>
+        </div>
+
+        <hr style="border:none; border-top:1px dashed var(--brand-gold); margin:18px 0;">
+        <h3 style="margin:0 0 12px; color:var(--brand-green-dark); font-weight:900;">📣 إعلان البوب-أب + 🥐 البياع الشاطر (Upsell)</h3>
+        <div class="form-grid-2">
+          <div>
+            <label style="display:flex; align-items:center; gap:8px; font-weight:800; margin-bottom:8px;">
+              <input type="checkbox" id="setPopupActive"> تفعيل إعلان البوب-أب اليومي
+            </label>
+            <textarea id="setPopupText" rows="3" class="fb-textarea" placeholder="نص الإعلان..."></textarea>
+          </div>
+          <div>
+            <label style="display:flex; align-items:center; gap:8px; font-weight:800; margin-bottom:8px;">
+              <input type="checkbox" id="setUpsellActive"> تفعيل البياع الشاطر في السلة
+            </label>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <input id="setUpsellName" class="fb-input" placeholder="اسم الصنف المقترح">
+              <input id="setUpsellPrice" type="number" class="fb-input" style="width:100px;" placeholder="السعر">
+              <input id="setUpsellIcon" class="fb-input" style="width:70px; text-align:center;" placeholder="🥐">
+            </div>
+            <input id="setUpsellMsg" class="fb-input" placeholder="الرسالة التحفيزية...">
+          </div>
+        </div>
+        <button type="button" class="btn-primary" style="margin-top:14px;" onclick="saveAllSettings()">💾 حفظ كل الإعدادات</button>
+      </div>
+
+      <div class="p-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; color:var(--brand-green-dark); font-weight:900;">🎟️ أكواد الخصم</h3>
+          <button type="button" class="btn-outline" onclick="openPromoModal()">➕ كود خصم جديد</button>
+        </div>
+        <div id="promosList"></div>
+      </div>
+    </section>
+
+    <!-- 4. مولّد QR -->
+    <section id="tab-qr" class="p-section">
+      <div class="p-card" style="max-width:520px; margin:0 auto; text-align:center;">
+        <h3 style="margin:0 0 12px; color:var(--brand-green-dark); font-weight:900;">📱 مولّد أكواد QR للترابيزات والمتجر</h3>
+        <div style="text-align:right; display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+          <div>
+            <label class="f-label">نوع الكود:</label>
+            <select id="qrType" class="fb-select" onchange="toggleQrTableField()">
+              <option value="dinein">🪑 ترابيزة (منيو الكراسي بره)</option>
+              <option value="store">🌐 المتجر العام (للبوستات والفروع)</option>
+            </select>
+          </div>
+          <div id="qrBranchWrap">
+            <label class="f-label">الفرع:</label>
+            <select id="qrBranchSelect" class="fb-select"></select>
+          </div>
+          <div id="qrTableWrap">
+            <label class="f-label">رقم الترابيزة:</label>
+            <input id="qrTableNo" class="fb-input" placeholder="مثال: 1" value="1">
+          </div>
+          <div>
+            <label class="f-label">الرابط الأساسي للموقع:</label>
+            <input id="qrBaseUrl" class="fb-input" dir="ltr" value="https://ahmed-wolf.github.io">
+          </div>
+        </div>
+        <button type="button" class="btn-primary" onclick="generateQrNow()">⚡ توليد كود الـ QR</button>
+        <div id="qrResultBox" style="display:none; margin-top:18px; background:#fff; border:2px solid var(--brand-green); border-radius:16px; padding:18px;">
+          <div id="qrCaption" style="font-weight:900; font-size:1.1rem; color:var(--brand-green-dark); margin-bottom:10px;"></div>
+          <div id="qrCanvasHost" style="display:flex; justify-content:center; margin-bottom:10px;"></div>
+          <div id="qrLinkText" style="font-size:0.75rem; word-break:break-all; color:var(--ink-muted); margin-bottom:12px;" dir="ltr"></div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-primary" onclick="downloadQrPng()">📥 تحميل PNG</button>
+            <button type="button" class="btn-outline" style="flex:1;" onclick="printQrCard()">🖨️ طباعة</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Modal إضافة / تعديل صنف -->
+<div class="fb-modal-overlay" id="itemModal">
+  <div class="fb-modal">
+    <div class="fb-modal-header">
+      <h3 id="itemModalTitle">إضافة / تعديل صنف</h3>
+      <button type="button" class="fb-close-btn" onclick="document.getElementById('itemModal').classList.remove('open')">✖</button>
+    </div>
+    <div class="fb-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+      <div><label class="f-label">القسم:</label><select id="mItemCat" class="fb-select"></select></div>
+      <div><label class="f-label">اسم الصنف:</label><input id="mItemName" class="fb-input" placeholder="مثال: كرواسون جبنة"></div>
+      <div class="form-grid-2">
+        <div><label class="f-label">السعر:</label><input id="mItemPrice" type="number" step="0.5" class="fb-input" dir="ltr"></div>
+        <div>
+          <label class="f-label">الوحدة:</label>
+          <select id="mItemUnit" class="fb-select">
+            <option value="جنيه">بالقطعة (جنيه)</option>
+            <option value="ج/ك">بالكيلو (ج/ك)</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="f-label">الأنواع / الإضافات (افصل بفاصلة ,):</label><input id="mItemVariants" class="fb-input" placeholder="مثال: سادة, شيكولاتة, زعتر"></div>
+      <div><label class="f-label">الوصف (اختياري):</label><input id="mItemDesc" class="fb-input" placeholder="مكونات أو تفاصيل الصنف..."></div>
+      <div style="background:var(--brand-card); padding:10px; border-radius:12px; border:1px dashed var(--brand-gold);">
+        <label class="f-label">📸 رفع صورة جديدة (أو لصق رابط):</label>
+        <input type="file" id="mItemFile" accept="image/*" style="margin-bottom:8px; width:100%;">
+        <input id="mItemImgUrl" class="fb-input" placeholder="رابط الصورة (يتم تعبئته تلقائياً عند الرفع)" dir="ltr">
+      </div>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; font-weight:800; font-size:0.88rem;">
+        <label><input type="checkbox" id="mItemAvail" checked> متاح</label>
+        <label><input type="checkbox" id="mItemStore" checked> ظاهر في المتجر</label>
+        <label><input type="checkbox" id="mItemDine"> ظاهر في منيو الكراسي</label>
+      </div>
+    </div>
+    <div class="fb-modal-footer">
+      <button type="button" id="saveItemBtn" class="btn-primary" onclick="saveMenuItem()">💾 حفظ الصنف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal كود خصم -->
+<div class="fb-modal-overlay" id="promoModal">
+  <div class="fb-modal" style="max-width:420px;">
+    <div class="fb-modal-header">
+      <h3>🎟️ إضافة كود خصم</h3>
+      <button type="button" class="fb-close-btn" onclick="document.getElementById('promoModal').classList.remove('open')">✖</button>
+    </div>
+    <div class="fb-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+      <div><label class="f-label">الكود:</label><input id="pCode" class="fb-input" placeholder="مثال: FB20" dir="ltr"></div>
+      <div class="form-grid-2">
+        <div><label class="f-label">نسبة الخصم %:</label><input id="pPct" type="number" class="fb-input" value="15" dir="ltr"></div>
+        <div><label class="f-label">أقصى خصم (ج):</label><input id="pCap" type="number" class="fb-input" value="30" dir="ltr"></div>
+        <div><label class="f-label">الحد الأدنى للطلب (ج):</label><input id="pMin" type="number" class="fb-input" value="100" dir="ltr"></div>
+        <div><label class="f-label">حد الاستخدام لكل رقم (0=مفتوح):</label><input id="pMaxUse" type="number" class="fb-input" value="1" dir="ltr"></div>
+      </div>
+      <div><label class="f-label">تاريخ الانتهاء (اختياري):</label><input id="pExp" type="date" class="fb-input" dir="ltr"></div>
+    </div>
+    <div class="fb-modal-footer">
+      <button type="button" class="btn-primary" onclick="savePromoCode()">حفظ الكود</button>
+    </div>
+  </div>
+</div>
+
+<div id="printTicketArea"></div>
+
+<script>
+let currentAdmin = null;
+let branches = [];
+let adminCats = [];
+let adminItems = [];
+let adminOrders = [];
+let adminPromos = [];
+let orderFilter = "pending";
+let editingItemId = null;
+let shiftSoundOn = false;
+let alarmLoopTimer = null;
+
+async function bootPartner() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const ok = await verifyAdminSession(session.user.id);
+    if (ok) return enterDashboard();
+  }
+}
+
+async function verifyAdminSession(uid) {
+  const { data } = await sb.from("staff").select("id, full_name, role, branch_id, is_active").eq("id", uid).maybeSingle();
+  if (!data || data.is_active === false || (data.role !== "owner" && data.role !== "admin")) {
+    await sb.auth.signOut({ scope: "local" });
+    return false;
+  }
+  currentAdmin = data;
+  return true;
+}
+
+async function doPartnerLogin() {
+  const email = document.getElementById("manualEmail").value.trim().toLowerCase();
+  const password = document.getElementById("loginPin").value;
+  const errEl = document.getElementById("loginErr");
+  errEl.style.display = "none";
+
+  if (!email || !password) {
+    errEl.textContent = "اكتب البريد الإلكتروني وكلمة المرور.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  const btn = document.getElementById("loginSubmitBtn");
+  btn.disabled = true;
+  btn.textContent = "جاري التحقق... ⏳";
+
+  try {
+    const res = await sb.auth.signInWithPassword({ email, password });
+    if (res.error || !res.data?.user) {
+      errEl.textContent = "❌ بيانات الدخول غير صحيحة.";
+      errEl.style.display = "block";
+      return;
+    }
+    const ok = await verifyAdminSession(res.data.user.id);
+    if (!ok) {
+      errEl.textContent = "⛔ هذا الحساب لا يملك صلاحية إدارة.";
+      errEl.style.display = "block";
+      return;
+    }
+    enterDashboard();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔓 تسجيل الدخول";
+  }
+}
+
+async function enterDashboard() {
+  document.getElementById("loginGate").style.display = "none";
+  document.getElementById("partnerShell").style.display = "block";
+  document.getElementById("partnerUserLabel").textContent = `👤 ${currentAdmin.full_name}`;
+
+  await Promise.all([loadBranches(), loadAdminMenuData(), loadOrders(), loadSettingsForm(), loadPromos()]);
+  subscribeLiveOrders();
+}
+
+async function partnerLogout() {
+  await sb.auth.signOut({ scope: "local" });
+  location.reload();
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll(".p-tab-btn").forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".p-section").forEach((s) => s.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.add("active");
+}
+
+function toggleShiftSound() {
+  shiftSoundOn = !shiftSoundOn;
+  const btn = document.getElementById("soundToggleBtn");
+  btn.textContent = shiftSoundOn ? "🔔 الشيفت شغال" : "🔕 بدء الشيفت";
+  if (shiftSoundOn) {
+    playNotificationChime(false);
+    showToast("🔔 تم تفعيل جرس الطلبات اللايف!");
+    checkUrgentAlarm();
+  } else if (alarmLoopTimer) {
+    clearInterval(alarmLoopTimer);
+    alarmLoopTimer = null;
+  }
+}
+
+function checkUrgentAlarm() {
+  const hasNew = adminOrders.some((o) => o.status === "pending" && !o.branch_id);
+  if (shiftSoundOn && hasNew) {
+    if (!alarmLoopTimer) {
+      playNotificationChime(true);
+      alarmLoopTimer = setInterval(() => {
+        if (shiftSoundOn && adminOrders.some((o) => o.status === "pending" && !o.branch_id)) {
+          playNotificationChime(true);
+        } else {
+          clearInterval(alarmLoopTimer);
+          alarmLoopTimer = null;
+        }
+      }, 6000);
+    }
+  } else if (alarmLoopTimer) {
+    clearInterval(alarmLoopTimer);
+    alarmLoopTimer = null;
+  }
+}
+
+async function loadBranches() {
+  const { data } = await sb.from("branches").select("*").order("id");
+  branches = data || [];
+  document.getElementById("qrBranchSelect").innerHTML = branches.map((b) => `<option value="${b.id}">${escapeHTML(b.name)}</option>`).join("");
+}
+
+// === الطلبات اللايف ===
+function subscribeLiveOrders() {
+  sb.channel("partner_orders_live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "online_orders" }, (payload) => {
+      if (payload.eventType === "INSERT" && shiftSoundOn) playNotificationChime(true);
+      loadOrders();
+    })
+    .subscribe();
+  setInterval(loadOrders, 25000);
+}
+
+async function loadOrders() {
+  const { data } = await sb.from("online_orders").select("*").order("created_at", { ascending: false }).limit(80);
+  adminOrders = data || [];
+  const pendingCnt = adminOrders.filter((o) => o.status === "pending").length;
+  document.getElementById("pendingOrdersCount").textContent = `(${pendingCnt})`;
+  renderOrders();
+  checkUrgentAlarm();
+}
+
+function setOrderFilter(f, btn) {
+  orderFilter = f;
+  btn.parentElement.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderOrders();
+}
+
+function renderOrders() {
+  const list = adminOrders.filter((o) => {
+    if (orderFilter === "pending") return o.status === "pending";
+    if (orderFilter === "active") return o.status === "accepted" || o.status === "preparing";
+    if (orderFilter === "done") return o.status === "ready" || o.status === "delivered";
+    return o.status === "rejected" || o.status === "cancelled";
+  });
+
+  const grid = document.getElementById("ordersGrid");
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="p-card" style="text-align:center; color:var(--ink-muted); font-weight:800;">لا توجد طلبات في هذا القسم حالياً</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((o) => {
+    const isUrgent = o.status === "pending" && !o.branch_id;
+    const typeLabel = o.order_type === "dine_in" ? `🪑 ترابيزة ${escapeHTML(o.table_no || "")}` : (o.order_type === "pickup" ? "🛍️ استلام" : "🛵 دليفري");
+    const st = formatStatusInfo(o.status, o.estimated_minutes);
+    const itemsArr = Array.isArray(o.order_details) ? o.order_details : [];
+    const itemsHtml = itemsArr.length > 0
+      ? itemsArr.map((it) => `<div>• <b>${escapeHTML(it.name)}</b> × ${it.quantity} (${Math.round(it.price * it.quantity)} ج)</div>`).join("")
+      : `<div style="white-space:pre-line;">${escapeHTML(o.notes || "")}</div>`;
+
+    const branchOpts = `<option value="">-- اختر الفرع للتوجيه --</option>` +
+      branches.map((b) => `<option value="${b.id}" ${String(o.branch_id) === String(b.id) ? "selected" : ""}>📍 ${escapeHTML(b.name)}</option>`).join("");
+
+    return `
+      <div class="order-card ${isUrgent ? "urgent" : ""}">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+          <div>
+            <span style="font-weight:900; color:var(--brand-green-dark);">${typeLabel}</span>
+            <small style="color:var(--ink-muted); margin-right:6px;" dir="ltr">${escapeHTML(o.tracking_code || "")}</small>
+          </div>
+          <span class="status-pill ${st.cls}">${st.label}</span>
+        </div>
+
+        <div style="font-size:0.88rem; margin-bottom:8px; line-height:1.6;">
+          <div>👤 <b>${escapeHTML(o.customer_name || "عميل")}</b> ${o.customer_phone ? `— <a href="tel:${escapeHTML(o.customer_phone)}" style="color:var(--brand-green); font-weight:800;" dir="ltr">${escapeHTML(o.customer_phone)}</a>` : ""}</div>
+          ${o.address ? `<div>📍 ${escapeHTML(o.address)}</div>` : ""}
+          <div>💳 ${formatPaymentLabel(o.payment_method)} | 💰 <b style="color:var(--brand-green); font-size:1rem;">${Math.round(o.total_amount)} ج.م</b></div>
+          <small style="color:#888;" dir="ltr">${new Date(o.created_at).toLocaleString("ar-EG")}</small>
+        </div>
+
+        <div style="background:var(--brand-beige); padding:10px; border-radius:10px; font-size:0.86rem; margin-bottom:10px;">
+          ${itemsHtml}
+        </div>
+
+        ${o.status === "pending" ? `
+          <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+            <select id="br-${o.id}" class="fb-select" style="flex:1; min-width:150px; padding:7px;">${branchOpts}</select>
+            <input id="eta-${o.id}" type="number" class="fb-input" style="width:95px; padding:7px; text-align:center;" value="${o.estimated_minutes || 25}" placeholder="دقيقة" title="وقت التحضير بالدقائق">
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn-primary" style="flex:1;" onclick="routeOrderToPOS('${o.id}')">📡 توجيه لكاشير الفرع</button>
+            <button type="button" class="btn-outline" onclick="updateOrderStatus('${o.id}', 'preparing')">🔥 تحضير</button>
+            <button type="button" class="btn-danger" onclick="rejectOrder('${o.id}')">❌ رفض</button>
+          </div>` : `
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${o.status === "accepted" || o.status === "preparing" ? `<button type="button" class="btn-primary" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'ready')">🛵 جاهز / في الطريق</button>` : ""}
+            ${o.status === "ready" ? `<button type="button" class="btn-primary" style="flex:1;" onclick="updateOrderStatus('${o.id}', 'delivered')">✅ تم التسليم</button>` : ""}
+            <button type="button" class="btn-outline" onclick="printOrderTicket('${o.id}')">🖨️ طباعة بون</button>
+          </div>`}
+      </div>`;
+  }).join("");
+}
+
+// التوجيه للكاشير: يحط branch_id ووقت التحضير ويسيب الحالة pending عشان pos_1.html يرن ويطبع
+async function routeOrderToPOS(orderId) {
+  const branchId = document.getElementById(`br-${orderId}`).value;
+  const eta = parseInt(document.getElementById(`eta-${orderId}`).value, 10) || 25;
+  if (!branchId) return showToast("⚠️ اختر الفرع الأول!", true);
+
+  const { error } = await sb.from("online_orders")
+    .update({ branch_id: branchId, estimated_minutes: eta, status: "pending" })
+    .eq("id", orderId);
+  if (error) return showToast("❌ خطأ: " + error.message, true);
+  showToast("📡 تم توجيه الطلب للفرع — سيرن على الكاشير خلال ثوانٍ!");
+  loadOrders();
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  const brEl = document.getElementById(`br-${orderId}`);
+  const etaEl = document.getElementById(`eta-${orderId}`);
+  const patch = { status: newStatus };
+  if (brEl && brEl.value) patch.branch_id = brEl.value;
+  if (etaEl && etaEl.value) patch.estimated_minutes = parseInt(etaEl.value, 10) || 25;
+
+  const { error } = await sb.from("online_orders").update(patch).eq("id", orderId);
+  if (error) return showToast("❌ تعذر التحديث.", true);
+  showToast("✅ تم تحديث حالة الطلب.");
+  loadOrders();
+}
+
+async function rejectOrder(orderId) {
+  const reason = prompt("اكتب سبب الرفض (هيظهر للعميل):", "عذراً، الصنف غير متاح حالياً");
+  if (reason === null) return;
+  const { error } = await sb.from("online_orders").update({ status: "rejected", rejection_reason: reason.trim() }).eq("id", orderId);
+  if (error) return showToast("❌ تعذر الرفض.", true);
+  showToast("تم رفض الطلب وإبلاغ العميل.");
+  loadOrders();
+}
+
+function printOrderTicket(orderId) {
+  const o = adminOrders.find((x) => x.id === orderId);
+  if (!o) return;
+  document.getElementById("printTicketArea").innerHTML = `
+    <h3 style="text-align:center; margin:0 0 6px;">Family Bakery</h3>
+    <div style="text-align:center; font-weight:900; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:4px 0; margin-bottom:6px;">
+      ${escapeHTML(o.tracking_code || "")}
+    </div>
+    <div><b>العميل:</b> ${escapeHTML(o.customer_name || "")}</div>
+    <div style="white-space:pre-line; margin:8px 0; font-size:13px;">${escapeHTML(o.notes || "")}</div>
+    <div style="border-top:2px solid #000; padding-top:6px; font-weight:900; font-size:16px;">الإجمالي: ${Math.round(o.total_amount)} ج.م</div>`;
+  window.print();
+}
+
+// === إدارة المنيو والصور ===
+async function loadAdminMenuData() {
+  const [cRes, iRes] = await Promise.all([
+    sb.from("menu_categories").select("*").order("sort_order"),
+    sb.from("menu_items").select("*").order("sort_order")
+  ]);
+  adminCats = cRes.data || [];
+  adminItems = iRes.data || [];
+
+  const filterEl = document.getElementById("adminCatFilter");
+  filterEl.innerHTML = `<option value="ALL">كل الأقسام (${adminItems.length})</option>` +
+    adminCats.map((c) => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join("");
+  document.getElementById("mItemCat").innerHTML = adminCats.map((c) => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join("");
+  renderAdminMenu();
+}
+
+function renderAdminMenu() {
+  const q = document.getElementById("adminMenuSearch").value.trim().toLowerCase();
+  const catF = document.getElementById("adminCatFilter").value;
+  const rows = adminItems.filter((it) =>
+    (catF === "ALL" || String(it.category_id) === String(catF)) &&
+    (!q || it.name.toLowerCase().includes(q))
+  );
+
+  document.getElementById("adminMenuList").innerHTML = rows.map((it) => `
+    <div class="menu-admin-row">
+      <img src="${escapeHTML(it.image_url || FB_FALLBACK_IMG)}" style="width:54px; height:54px; object-fit:contain; border-radius:10px; background:#FAF7F0; border:1px solid var(--brand-gold);" onerror="this.src=FB_FALLBACK_IMG;">
+      <div style="flex:1; min-width:160px;">
+        <div style="font-weight:900;">${escapeHTML(it.name)}</div>
+        <div style="font-size:0.84rem; color:var(--brand-green); font-weight:800;">${Number(it.price)} ${escapeHTML(it.unit || "جنيه")}</div>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="toggle-pill ${it.is_available ? "on" : ""}" onclick="toggleItemFlag(${it.id}, 'is_available', ${!it.is_available})">${it.is_available ? "✓ متاح" : "✕ موقوف"}</button>
+        <button type="button" class="toggle-pill ${it.show_in_store ? "on" : ""}" onclick="toggleItemFlag(${it.id}, 'show_in_store', ${!it.show_in_store})">🛒 متجر</button>
+        <button type="button" class="toggle-pill ${it.show_in_dine_in ? "on" : ""}" onclick="toggleItemFlag(${it.id}, 'show_in_dine_in', ${!it.show_in_dine_in})">🪑 كراسي</button>
+        <button type="button" class="btn-outline" style="padding:5px 10px; font-size:0.8rem;" onclick="openItemModal(${it.id})">تعديل ✏️</button>
+        <button type="button" class="btn-danger" style="padding:5px 10px; font-size:0.8rem;" onclick="deleteMenuItem(${it.id})">🗑️</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function toggleItemFlag(id, col, val) {
+  const { error } = await sb.from("menu_items").update({ [col]: val }).eq("id", id);
+  if (error) return showToast("❌ خطأ في التحديث.", true);
+  const target = adminItems.find((x) => x.id === id);
+  if (target) target[col] = val;
+  renderAdminMenu();
+}
+
+function openItemModal(id = null) {
+  editingItemId = id;
+  const it = id ? adminItems.find((x) => x.id === id) : null;
+  document.getElementById("itemModalTitle").textContent = it ? "تعديل الصنف" : "➕ إضافة صنف جديد";
+  document.getElementById("mItemCat").value = it?.category_id || (adminCats[0]?.id || "");
+  document.getElementById("mItemName").value = it?.name || "";
+  document.getElementById("mItemPrice").value = it?.price ?? "";
+  document.getElementById("mItemUnit").value = it?.unit || "جنيه";
+  document.getElementById("mItemVariants").value = Array.isArray(it?.variants) ? it.variants.join(", ") : "";
+  document.getElementById("mItemDesc").value = it?.description || "";
+  document.getElementById("mItemImgUrl").value = it?.image_url || "";
+  document.getElementById("mItemFile").value = "";
+  document.getElementById("mItemAvail").checked = it ? it.is_available !== false : true;
+  document.getElementById("mItemStore").checked = it ? it.show_in_store !== false : true;
+  document.getElementById("mItemDine").checked = Boolean(it?.show_in_dine_in);
+  document.getElementById("itemModal").classList.add("open");
+}
+
+async function saveMenuItem() {
+  const name = document.getElementById("mItemName").value.trim();
+  const price = parseFloat(document.getElementById("mItemPrice").value);
+  if (!name || isNaN(price) || price < 0) return showToast("⚠️ اكتب الاسم والسعر صح.", true);
+
+  const btn = document.getElementById("saveItemBtn");
+  btn.disabled = true;
+  btn.textContent = "جاري الحفظ... ⏳";
+
+  try {
+    let imageUrl = document.getElementById("mItemImgUrl").value.trim() || null;
+    const file = document.getElementById("mItemFile").files[0];
+
+    if (file) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const filePath = `items/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const { error: upErr } = await sb.storage.from("menu-images").upload(filePath, file, { upsert: true });
+      if (upErr) throw upErr;
+      imageUrl = sb.storage.from("menu-images").getPublicUrl(filePath).data.publicUrl;
+    }
+
+    const variantsRaw = document.getElementById("mItemVariants").value;
+    const variants = variantsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+
+    const payload = {
+      category_id: Number(document.getElementById("mItemCat").value) || null,
+      name,
+      price,
+      unit: document.getElementById("mItemUnit").value,
+      variants,
+      description: document.getElementById("mItemDesc").value.trim() || null,
+      image_url: imageUrl,
+      is_available: document.getElementById("mItemAvail").checked,
+      show_in_store: document.getElementById("mItemStore").checked,
+      show_in_dine_in: document.getElementById("mItemDine").checked
+    };
+
+    const res = editingItemId
+      ? await sb.from("menu_items").update(payload).eq("id", editingItemId)
+      : await sb.from("menu_items").insert(payload);
+
+    if (res.error) throw res.error;
+    showToast("✅ تم حفظ الصنف بنجاح!");
+    document.getElementById("itemModal").classList.remove("open");
+    await loadAdminMenuData();
+  } catch (err) {
+    showToast("❌ خطأ: " + (err.message || err), true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "💾 حفظ الصنف";
+  }
+}
+
+async function deleteMenuItem(id) {
+  if (!confirm("هل أنت متأكد من حذف هذا الصنف نهائياً؟")) return;
+  const { error } = await sb.from("menu_items").delete().eq("id", id);
+  if (error) return showToast("❌ تعذر الحذف.", true);
+  showToast("🗑️ تم حذف الصنف.");
+  loadAdminMenuData();
+}
+
+async function openAddCategoryModal() {
+  const name = prompt("اكتب اسم القسم الجديد (مثال: الكوفي والمشروبات):");
+  if (!name || !name.trim()) return;
+  const { error } = await sb.from("menu_categories").insert({ name: name.trim(), sort_order: adminCats.length + 1, is_active: true });
+  if (error) return showToast("❌ خطأ في إضافة القسم.", true);
+  showToast("✅ تم إضافة القسم!");
+  loadAdminMenuData();
+}
+
+// === الإعدادات وأكواد الخصم ===
+async function loadSettingsForm() {
+  const s = await loadStoreSettings();
+  document.getElementById("quickStoreStatus").value = s.store_status || "open";
+  document.getElementById("setWa").value = s.whatsapp_phone || "";
+  document.getElementById("setInsta").value = s.instapay_number || "";
+  document.getElementById("setWallet").value = s.wallet_number || "";
+  document.getElementById("setLandOld").value = s.landline_old_branch || "";
+  document.getElementById("setLandBahr").value = s.landline_bahr_branch || "";
+  document.getElementById("setTiktok").value = s.tiktok_url || "";
+  document.getElementById("setFb").value = s.facebook_url || "";
+  document.getElementById("setIg").value = s.instagram_url || "";
+  document.getElementById("setMaps").value = s.maps_url || "";
+  document.getElementById("setPopupActive").checked = Boolean(s.popup_active);
+  document.getElementById("setPopupText").value = s.popup_text || "";
+  document.getElementById("setUpsellActive").checked = Boolean(s.upsell_active);
+  document.getElementById("setUpsellName").value = s.upsell_name || "";
+  document.getElementById("setUpsellPrice").value = s.upsell_price || 0;
+  document.getElementById("setUpsellIcon").value = s.upsell_icon || "🥐";
+  document.getElementById("setUpsellMsg").value = s.upsell_msg || "";
+}
+
+async function quickSaveStatus(val) {
+  const { error } = await sb.from("web_store_settings").update({ store_status: val }).eq("id", 1);
+  if (!error) showToast("✅ تم تحديث حالة المتجر.");
+}
+
+async function saveAllSettings() {
+  const payload = {
+    id: 1,
+    store_status: document.getElementById("quickStoreStatus").value,
+    whatsapp_phone: document.getElementById("setWa").value.trim(),
+    instapay_number: document.getElementById("setInsta").value.trim(),
+    wallet_number: document.getElementById("setWallet").value.trim(),
+    landline_old_branch: document.getElementById("setLandOld").value.trim(),
+    landline_bahr_branch: document.getElementById("setLandBahr").value.trim(),
+    tiktok_url: document.getElementById("setTiktok").value.trim(),
+    facebook_url: document.getElementById("setFb").value.trim(),
+    instagram_url: document.getElementById("setIg").value.trim(),
+    maps_url: document.getElementById("setMaps").value.trim(),
+    popup_active: document.getElementById("setPopupActive").checked,
+    popup_text: document.getElementById("setPopupText").value.trim(),
+    upsell_active: document.getElementById("setUpsellActive").checked,
+    upsell_name: document.getElementById("setUpsellName").value.trim(),
+    upsell_price: parseFloat(document.getElementById("setUpsellPrice").value) || 0,
+    upsell_icon: document.getElementById("setUpsellIcon").value.trim() || "🥐",
+    upsell_msg: document.getElementById("setUpsellMsg").value.trim()
+  };
+  const { error } = await sb.from("web_store_settings").upsert(payload);
+  if (error) return showToast("❌ خطأ: " + error.message, true);
+  showToast("✅ تم حفظ كل الإعدادات والروابط!");
+}
+
+async function loadPromos() {
+  const { data } = await sb.from("promo_codes").select("*").order("id", { ascending: false });
+  adminPromos = data || [];
+  document.getElementById("promosList").innerHTML = adminPromos.map((p) => `
+    <div class="menu-admin-row">
+      <div style="flex:1;">
+        <b style="color:var(--brand-green); font-size:1.05rem;" dir="ltr">${escapeHTML(p.code)}</b>
+        <div style="font-size:0.82rem; color:var(--ink-muted);">خصم ${p.discount_percent}% | أقصى خصم ${p.max_cap} ج | حد أدنى ${p.min_order_amount} ج | استخدام/رقم: ${p.max_per_phone || "مفتوح"}</div>
+      </div>
+      <button type="button" class="toggle-pill ${p.is_active ? "on" : ""}" onclick="togglePromo(${p.id}, ${!p.is_active})">${p.is_active ? "نشط" : "موقوف"}</button>
+      <button type="button" class="btn-danger" style="padding:5px 10px;" onclick="deletePromo(${p.id})">🗑️</button>
+    </div>
+  `).join("");
+}
+
+function openPromoModal() { document.getElementById("promoModal").classList.add("open"); }
+async function savePromoCode() {
+  const code = document.getElementById("pCode").value.trim().toUpperCase();
+  if (!code) return showToast("اكتب الكود!", true);
+  const { error } = await sb.from("promo_codes").upsert({
+    code,
+    discount_percent: parseFloat(document.getElementById("pPct").value) || 0,
+    max_cap: parseFloat(document.getElementById("pCap").value) || 0,
+    min_order_amount: parseFloat(document.getElementById("pMin").value) || 0,
+    max_per_phone: parseInt(document.getElementById("pMaxUse").value, 10) || 0,
+    expires_at: document.getElementById("pExp").value || null,
+    is_active: true
+  }, { onConflict: "code" });
+  if (error) return showToast("❌ " + error.message, true);
+  document.getElementById("promoModal").classList.remove("open");
+  showToast("✅ تم حفظ كود الخصم!");
+  loadPromos();
+}
+async function togglePromo(id, val) { await sb.from("promo_codes").update({ is_active: val }).eq("id", id); loadPromos(); }
+async function deletePromo(id) { if (confirm("حذف الكود؟")) { await sb.from("promo_codes").delete().eq("id", id); loadPromos(); } }
+
+// === مولّد QR ===
+function toggleQrTableField() {
+  const isDine = document.getElementById("qrType").value === "dinein";
+  document.getElementById("qrBranchWrap").style.display = isDine ? "block" : "none";
+  document.getElementById("qrTableWrap").style.display = isDine ? "block" : "none";
+}
+
+function generateQrNow() {
+  const base = document.getElementById("qrBaseUrl").value.trim().replace(/\/+$/, "");
+  const isDine = document.getElementById("qrType").value === "dinein";
+  let url = base + "/";
+  let caption = "Family Bakery — اطلب أونلاين";
+
+  if (isDine) {
+    const brId = document.getElementById("qrBranchSelect").value;
+    const brName = document.getElementById("qrBranchSelect").selectedOptions[0]?.textContent || "";
+    const tbl = document.getElementById("qrTableNo").value.trim() || "1";
+    url = `${base}/dinein.html?branch=${encodeURIComponent(brId)}&table=${encodeURIComponent(tbl)}`;
+    caption = `Family Bakery (${brName}) — ترابيزة رقم ${tbl}`;
+  }
+
+  const host = document.getElementById("qrCanvasHost");
+  host.innerHTML = "";
+  new QRCode(host, { text: url, width: 230, height: 230, colorDark: "#183F33", colorLight: "#FFFFFF" });
+  document.getElementById("qrCaption").textContent = caption;
+  document.getElementById("qrLinkText").textContent = url;
+  document.getElementById("qrResultBox").style.display = "block";
+}
+
+function downloadQrPng() {
+  const canvas = document.querySelector("#qrCanvasHost canvas");
+  if (!canvas) return;
+  const a = document.createElement("a");
+  a.download = `FamilyBakery_QR_${Date.now()}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+
+function printQrCard() {
+  const canvas = document.querySelector("#qrCanvasHost canvas");
+  if (!canvas) return;
+  const cap = document.getElementById("qrCaption").textContent;
+  document.getElementById("printTicketArea").innerHTML = `
+    <div style="text-align:center; border:3px solid #235848; padding:14px; border-radius:14px;">
+      <h2 style="margin:0 0 8px;">${escapeHTML(cap)}</h2>
+      <img src="${canvas.toDataURL("image/png")}" style="width:200px; height:200px; margin:0 auto;">
+      <p style="font-weight:900; margin:8px 0 0;">امسح الكود لتصفح المنيو والطلب فوراً</p>
+    </div>`;
+  window.print();
+}
+
+bootPartner();
+</script>
+</body>
+</html>

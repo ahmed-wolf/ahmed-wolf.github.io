@@ -1,18 +1,20 @@
-// تثبيت السيرفر ووركر
-self.addEventListener('install', (e) => {
-    console.log('[Service Worker] Installed');
+const CACHE_VERSION = 'fb-v2-2026';
+
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-// تفعيل السيرفر ووركر
 self.addEventListener('activate', (e) => {
-    console.log('[Service Worker] Activated');
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
-// التعامل مع طلبات النت
 self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        fetch(e.request).catch(() => {
-            return caches.match(e.request);
-        })
-    );
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
 });

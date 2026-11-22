@@ -1,11 +1,11 @@
 {
   "name": "فاملي بيكري - Family Bakery",
   "short_name": "فاملي بيكري",
- "start_url": "./",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#f8f9fa",
-  "theme_color": "#d84315",
-  "orientation": "portrait",
+  "background_color": "#F4EFE2",
+  "theme_color": "#235848",
+  "orientation": "any",
   "icons": [
     {
       "src": "icon-192.png",

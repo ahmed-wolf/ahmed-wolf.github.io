@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>فاملي بيكري | منيو الترابيزات</title>
+  <meta name="theme-color" content="#235848">
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="./theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./web_config.js"></script>
+</head>
+<body class="store-page">
+
+<header class="fb-header">
+  <div class="fb-brand">
+    <img src="logo.png" alt="فاملي بيكري" class="fb-logo-img" onerror="this.style.display='none'; document.getElementById('dineLogoFb').style.display='flex';">
+    <div id="dineLogoFb" class="fb-logo-fallback">FB</div>
+    <div>
+      <span class="fb-brand-title">منيو القعدة</span>
+      <span class="fb-brand-sub" id="tableBadgeHeader">🪑 أهلاً بك في فاملي بيكري</span>
+    </div>
+  </div>
+  <button type="button" class="fb-pill-btn" onclick="openDineCart()">
+    🛒 <span id="dineTopTotal">0 ج</span>
+    <span id="dineTopCount" class="fb-badge">0</span>
+  </button>
+</header>
+
+<nav class="cat-nav" id="dineCatNav"></nav>
+
+<div class="store-layout" style="max-width:960px;">
+  <div id="activeOrderBanner" style="display:none; background:var(--brand-card); border:2px solid var(--brand-green); border-radius:16px; padding:14px;"></div>
+  <div id="dineMenuContainer">
+    <div class="fb-loader">
+      <div class="fb-spinner">☕</div>
+      <div>جاري تحميل منيو الكوفي والمخبوزات...</div>
+    </div>
+  </div>
+</div>
+
+<div id="dineMobileBar" class="mobile-cart-bar hidden" onclick="openDineCart()">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span id="dineMobCount" class="fb-badge" style="background:var(--brand-beige); color:var(--brand-green-dark);">0</span>
+    <span style="font-weight:900;">مراجعة طلب الترابيزة</span>
+  </div>
+  <span id="dineMobTotal" style="font-weight:900;">0 ج.م</span>
+</div>
+
+<!-- Modal تأكيد طلب الترابيزة -->
+<div class="fb-modal-overlay" id="dineCartModal">
+  <div class="fb-modal">
+    <div class="fb-modal-header">
+      <h3 id="dineCartTitle">🪑 طلب الترابيزة</h3>
+      <button type="button" class="fb-close-btn" onclick="document.getElementById('dineCartModal').classList.remove('open')">✖</button>
+    </div>
+    <div class="fb-modal-body">
+      <div id="dineCartItems"></div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px;">
+        <input type="text" id="dineTableInput" class="fb-input" placeholder="🪑 رقم الترابيزة *">
+        <input type="text" id="dineCustName" class="fb-input" placeholder="👤 اسمك (اختياري)">
+        <input type="text" id="dineNotes" class="fb-input" placeholder="📝 ملاحظات (سكر زيادة / ساخن / بدون ...)">
+      </div>
+    </div>
+    <div class="fb-modal-footer">
+      <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; color:var(--brand-green-dark); margin-bottom:10px;">
+        <span>الإجمالي:</span>
+        <span id="dineModalTotal">0 ج.م</span>
+      </div>
+      <button type="button" id="dineSubmitBtn" class="btn-primary" style="padding:13px; font-size:1.05rem;" onclick="submitDineOrder()">إرسال الطلب للتحضير فوراً 🔔</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const urlBranchId = params.get("branch") || null;
+const urlTableNo = params.get("table") || "";
+
+let dineCategories = [];
+let dineItems = [];
+let dineCart = [];
+let dineSubmitting = false;
+
+async function initDineIn() {
+  if (urlTableNo) {
+    document.getElementById("tableBadgeHeader").textContent = `🪑 ترابيزة رقم ${urlTableNo}`;
+    document.getElementById("dineCartTitle").textContent = `🪑 طلب ترابيزة رقم ${urlTableNo}`;
+    const tblInp = document.getElementById("dineTableInput");
+    tblInp.value = urlTableNo;
+    tblInp.readOnly = true;
+    tblInp.style.background = "var(--brand-green-soft)";
+  }
+
+  const [catRes, dineRes] = await Promise.all([
+    sb.from("menu_categories").select("*").eq("is_active", true).order("sort_order"),
+    sb.from("menu_items").select("*").eq("is_available", true).eq("show_in_dine_in", true).order("sort_order")
+  ]);
+
+  dineCategories = catRes.data || [];
+  dineItems = dineRes.data || [];
+
+  // لو لسه مفيش أصناف متعلّمة لمنيو الكراسي في الداشبورد، نعرض المتاح مؤقتاً
+  if (dineItems.length === 0) {
+    const fb = await sb.from("menu_items").select("*").eq("is_available", true).order("sort_order");
+    dineItems = fb.data || [];
+  }
+
+  renderDineMenu();
+  const lastCode = safeGetStr("fb_last_dinein_track");
+  if (lastCode) startDineTracking(lastCode);
+}
+
+function renderDineMenu() {
+  let navHtml = "";
+  let html = "";
+
+  dineCategories.forEach((cat) => {
+    const items = dineItems.filter((i) => i.category_id === cat.id);
+    if (items.length === 0) return;
+
+    navHtml += `<a href="#dcat-${cat.id}" class="cat-chip">${escapeHTML(cat.name)}</a>`;
+    html += `<section id="dcat-${cat.id}"><h2 class="cat-heading">${escapeHTML(cat.name)}</h2><div class="menu-grid">`;
+
+    items.forEach((it) => {
+      const variants = Array.isArray(it.variants) ? it.variants.filter((v) => String(v).trim()) : [];
+      const hasVar = variants.length > 0;
+      const imgSrc = it.image_url ? escapeHTML(it.image_url) : FB_FALLBACK_IMG;
+      const idx = !hasVar ? dineCart.findIndex((c) => c.itemId === it.id && !c.variant) : -1;
+
+      html += `
+        <article class="item-card">
+          <div class="item-img-wrap">
+            <img src="${imgSrc}" alt="${escapeHTML(it.name)}" class="item-img" loading="lazy" onerror="this.onerror=null;this.src=FB_FALLBACK_IMG;">
+          </div>
+          <div class="item-body">
+            <h4 class="item-title">${escapeHTML(it.name)}</h4>
+            <div class="item-price">${Number(it.price)} <small>${escapeHTML(it.unit || "جنيه")}</small></div>
+            ${hasVar ? `<select id="dvar-${it.id}" class="variant-select">${variants.map((v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}</select>` : ""}
+            <div style="margin-top:auto;">
+              ${idx >= 0 ? `
+                <div class="qty-box">
+                  <button type="button" class="qty-btn" onclick="changeDineQty(${idx}, -1)">-</button>
+                  <span class="qty-val">${dineCart[idx].quantity}</span>
+                  <button type="button" class="qty-btn" onclick="changeDineQty(${idx}, 1)">+</button>
+                </div>` : `<button type="button" class="btn-primary" onclick="addDineItem(${it.id})">إضافة +</button>`}
+            </div>
+          </div>
+        </article>`;
+    });
+
+    html += `</div></section>`;
+  });
+
+  document.getElementById("dineCatNav").innerHTML = navHtml;
+  document.getElementById("dineMenuContainer").innerHTML = html || `<div class="fb-loader">المنيو فارغ حالياً</div>`;
+}
+
+function addDineItem(id) {
+  const it = dineItems.find((x) => x.id === id);
+  if (!it) return;
+  const vEl = document.getElementById(`dvar-${id}`);
+  const variant = vEl ? vEl.value : "";
+  const name = variant ? `${it.name} (${variant})` : it.name;
+  const isWeight = String(it.unit || "").includes("ك");
+  const step = isWeight ? 0.25 : 1;
+
+  const ex = dineCart.find((c) => c.itemId === id && c.variant === variant);
+  if (ex) ex.quantity = Number((ex.quantity + step).toFixed(2));
+  else dineCart.push({ itemId: id, name, variant, price: Number(it.price), unit: it.unit || "جنيه", isWeight, step, quantity: step });
+
+  updateDineUI();
+  showToast(`✅ تمت إضافة ${name}`);
+}
+
+function changeDineQty(idx, dir) {
+  const row = dineCart[idx];
+  if (!row) return;
+  const next = Number((row.quantity + dir * row.step).toFixed(2));
+  if (next <= 0.001) dineCart.splice(idx, 1);
+  else row.quantity = next;
+  updateDineUI();
+}
+
+function updateDineUI() {
+  const total = dineCart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const count = dineCart.reduce((s, c) => s + (c.isWeight ? 1 : c.quantity), 0);
+  document.getElementById("dineTopCount").textContent = Math.round(count);
+  document.getElementById("dineTopTotal").textContent = `${Math.round(total)} ج`;
+  document.getElementById("dineMobCount").textContent = Math.round(count);
+  document.getElementById("dineMobTotal").textContent = `${Math.round(total)} ج.م`;
+  document.getElementById("dineModalTotal").textContent = `${Math.round(total)} ج.م`;
+  document.getElementById("dineMobileBar").classList.toggle("hidden", dineCart.length === 0);
+  renderDineMenu();
+  renderDineCartBody();
+}
+
+function renderDineCartBody() {
+  const box = document.getElementById("dineCartItems");
+  if (dineCart.length === 0) {
+    box.innerHTML = `<div style="text-align:center; padding:18px; color:var(--ink-muted); font-weight:700;">اختر أصنافك أولاً ☕</div>`;
+    return;
+  }
+  box.innerHTML = dineCart.map((c, idx) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px dashed var(--brand-gold);">
+      <div><b>${escapeHTML(c.name)}</b><br><small style="color:var(--brand-green); font-weight:800;">${Math.round(c.price * c.quantity)} ج</small></div>
+      <div class="qty-box" style="height:32px;">
+        <button type="button" class="qty-btn" style="width:28px;" onclick="changeDineQty(${idx}, -1)">-</button>
+        <span class="qty-val">${c.quantity}</span>
+        <button type="button" class="qty-btn" style="width:28px;" onclick="changeDineQty(${idx}, 1)">+</button>
+      </div>
+    </div>`).join("");
+}
+
+function openDineCart() {
+  renderDineCartBody();
+  document.getElementById("dineCartModal").classList.add("open");
+}
+
+async function submitDineOrder() {
+  if (dineSubmitting) return;
+  if (dineCart.length === 0) return showToast("اختر أصناف أولاً!", true);
+
+  const tableNo = document.getElementById("dineTableInput").value.trim();
+  if (!tableNo) return showToast("⚠️ اكتب رقم الترابيزة!", true);
+
+  const custName = document.getElementById("dineCustName").value.trim() || `ترابيزة ${tableNo}`;
+  const extraNotes = document.getElementById("dineNotes").value.trim();
+
+  dineSubmitting = true;
+  const btn = document.getElementById("dineSubmitBtn");
+  btn.disabled = true;
+  btn.textContent = "جاري الإرسال للمخبز... ⏳";
+
+  try {
+    const { data: orderRes, error } = await sb.rpc("create_secure_online_order", {
+      p_order_type: "dine_in",
+      p_branch_id: urlBranchId || null,
+      p_table_no: tableNo,
+      p_customer_name: custName,
+      p_customer_phone: "",
+      p_address: `ترابيزة ${tableNo}`,
+      p_payment_method: "cash",
+      p_promo_code: null,
+      p_extra_notes: extraNotes,
+      p_items: dineCart.map((c) => ({
+        item_id: c.itemId,
+        variant: c.variant || "",
+        quantity: c.quantity
+      }))
+    });
+
+    if (error) throw error;
+
+    const trackingCode = orderRes.tracking_code;
+    safeSet("fb_last_dinein_track", trackingCode);
+    dineCart = [];
+    document.getElementById("dineNotes").value = "";
+    updateDineUI();
+    document.getElementById("dineCartModal").classList.remove("open");
+    showToast("🔔 وصل طلبك للمخبز وجاري تحضيره!");
+    startDineTracking(trackingCode);
+  } catch (err) {
+    showToast("❌ " + (err.message || "تعذر إرسال الطلب، حاول تاني."), true);
+    console.error(err);
+  } finally {
+    dineSubmitting = false;
+    btn.disabled = false;
+    btn.textContent = "إرسال الطلب للتحضير فوراً 🔔";
+  }
+}
+
+let dineTrackTimer = null;
+function startDineTracking(code) {
+  const banner = document.getElementById("activeOrderBanner");
+  async function poll() {
+    const { data } = await sb.rpc("track_online_order", { p_tracking_code: code });
+    if (!data || data.length === 0) return;
+    const o = data[0];
+    if (o.status === "delivered") {
+      banner.style.display = "none";
+      clearInterval(dineTrackTimer);
+      return;
+    }
+    const st = formatStatusInfo(o.status, o.estimated_minutes);
+    banner.style.display = "block";
+    banner.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <strong style="color:var(--brand-green-dark);">🪑 طلبك الحالي (${escapeHTML(code)})</strong>
+          <div class="status-pill ${st.cls}" style="margin-right:8px;">${st.label}</div>
+        </div>
+        <strong style="color:var(--brand-green);">${Math.round(o.total_amount)} ج</strong>
+      </div>`;
+  }
+  poll();
+  if (dineTrackTimer) clearInterval(dineTrackTimer);
+  dineTrackTimer = setInterval(poll, 10000);
+}
+
+initDineIn();
+</script>
+</body>
+</html>
